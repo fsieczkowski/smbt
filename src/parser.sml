@@ -59,16 +59,18 @@ struct
   infix  2 wth suchthat return guard when
   infixr 1 || <|> ??
 
+  exception ParseError of string
+
   val name = TP.identifier
   val version = TP.lexeme (char #"v" && repeat1 (digit <|> char #".") wth String.implode o op::)
   val nwsstr = TP.lexeme (repeat1 (satisfy (Char.isGraph)) wth String.implode)
-     suchthat (fn x => Bool.not (List.exists (fn y => x = y) LexDef.reservedNames))
+    suchthat (fn x => Bool.not (List.exists (fn y => x = y) LexDef.reservedNames))
   val pqstring = TP.stringLiteral <|> nwsstr
   val macro = TP.reserved "val" >> name << TP.reservedOp "=" && pqstring
   val pkg = TP.reserved "pkg" >> name && version wth SmackPKG
-          <|> TP.reserved "smb" >> pqstring && name wth LocalPKG
+        <|> TP.reserved "smb" >> pqstring && name wth LocalPKG
   val ffidec = TP.reserved "lnkopt" >> name wth FFILnk <|> TP.reserved "cflags" >> pqstring wth FFIFlgs
-          <|> TP.reserved "header" >> pqstring wth FFIHdr <|> pqstring wth FFIFile
+           <|> TP.reserved "header" >> pqstring wth FFIHdr <|> pqstring wth FFIFile
   val ffi = TP.reserved "ffi" >> repeat ffidec << TP.reserved "end"
   val sources = TP.reserved "sources" >> repeat pqstring << TP.reserved "end"
   val option = TP.reserved "option" >> name << TP.reservedOp "=" && pqstring
@@ -79,12 +81,12 @@ struct
   val sms = TP.reserved "specpath" >> pqstring wth SLnk (* TODO: fill in parser for internal smackspecs *)
   val smb = sms && repeat target
 
-  fun parse p s = sum (fn s => raise Fail s) (fn x => x) (parseString p s)
-  fun parseFileSuc fileName =
+  fun parse p s = sum (fn s => raise ParseError s) (fn x => x) (parseString (p << eos) s)
+  fun parseFile fileName =
       let fun isEol s = (case Stream.front s of Stream.Cons (#"\n", _) => true | _ => false)
           val is = Stream.fromTextInstream (TextIO.openIn fileName)
           val cs = CoordinatedStream.coordinate isEol (Coord.init fileName) is
-      in outR (CharParser.parseChars (smb << eos) cs)
+      in sum (fn s => raise ParseError s) (fn x => x) (CharParser.parseChars (smb << eos) cs)
       end
 
 end
