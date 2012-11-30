@@ -7,3 +7,7 @@ Group is
   (* smbt *)
   src/parser.sml
   src/elaborate.sml
+  src/config.sml
+  src/version.sml
+  src/watch.sml
+  src/plan.sml

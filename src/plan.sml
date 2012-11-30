@@ -39,15 +39,75 @@ sig
 
     (** Pretty-print a plan, mostly for debugging. **)
     val toString : t -> string
+
+    (** Parse a file and select a specific target to build a plan. **)
+    val parseFile : string -> string -> t
+
 end
 
 (** The structure for target plans, which represent everything needed
   to generate target files and execute commands. **)
 structure Plan :> PLAN =
 struct
-    type t = unit
+    open AST
 
-    val empty = ()
+    type t = {ffi : ffidec option, srcs : string list, opts : (string * string) list}
+    datatype slice = Slice of t * pkgdec list * slice option
+
+    val empty = {ffi = NONE, srcs = [], opts = []}
+
+    (* TODO: figure this one out *)
+    fun composeCFlags c1 c2 = c1 ^ c2
+    fun composeFFI (FFID f1) (FFID f2) =
+	let fun compcf c1 c2 =
+		case c1 of NONE => c2
+			 | SOME cf1 =>
+			   case c2 of NONE => c1
+				    | SOME cf2 => SOME (composeCFlags cf1 cf2)
+	    fun comphdr c1 c2 = case c2 of NONE => c1
+					 | SOME _ => c2
+	in FFID {ffisrc = #ffisrc f1 @ #ffisrc f2, lnkopts = #lnkopts f1 @ #lnkopts f2,
+		 cflags = compcf (#cflags f1) (#cflags f2), hdr = comphdr (#hdr f1) (#hdr f2)}
+	end
+
+    fun compose (p : t) (p' : t) =
+	let fun cmp f1 f2 =
+		case f1 of NONE => f2
+			 | SOME f1' => case f2 of NONE => f1
+						| SOME f2' => SOME (composeFFI f1' f2')
+	in {ffi = cmp (#ffi p) (#ffi p'), srcs = #srcs p @ #srcs p',
+	    opts = #opts p' @ #opts p} : t
+	end
+
+    (** Select an appropriate part of an AST for a given target **)
+    fun selectOne target (tname, Dec dec) =
+	let val lplan = {ffi = #ffi dec, srcs = #src dec, opts = #opts dec}
+	in if target = tname then SOME (Slice (lplan, #deps dec, NONE))
+	   else Option.map (fn s => Slice (lplan, #deps dec, SOME s))
+			   (selectMany target (#targets dec))
+	end
+    and selectMany target [] = NONE
+      | selectMany target (td :: ts) = case selectOne target td of
+					   NONE => selectMany target ts
+					 | SOME s => SOME s
+    (** Handle the dependencies: generate the appropriate plan from the link & target **)
+    fun handlePkg (SmackPKG _) = raise Fail "Smackage packages not supported (yet!)."
+      | handlePkg (LocalPKG (p, tn)) = parseFile p tn
+    (** Transform the selected slice into a plan **)
+    and foldSlice (Slice (p, deps, os)) =
+	let fun fd deps s = List.foldl (fn (pk, s) => compose (handlePkg pk) s) s deps
+	    fun aux (Slice (p, deps, NONE)) s = fd deps (compose p s)
+	      | aux (Slice (p, deps, SOME sl)) s = aux sl (fd deps (compose p s))
+	    val start = fd deps p
+	in case os of NONE => start | SOME sl => aux sl start
+	end
+    (** Build a plan out of a .sb file **)
+    and parseFile fp tname =
+	let val (ss, targs) = Elaborate.substAndElab (Parser.parseFile fp)
+	    val sl = case selectMany tname targs of
+			 SOME s => s
+		       | NONE => raise Fail ("Target " ^ tname ^ " not found!")
+	in foldSlice sl end
 
     fun execute t = print "Execute plan.\n"
 
@@ -61,8 +121,6 @@ struct
         in
             watch t
         end
-
-    fun compose p p' = empty
 
     fun toString p = "<PLAN>"
 
