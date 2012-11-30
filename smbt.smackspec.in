@@ -1,0 +1,7 @@
+provides: smbt ###VERSION###
+description: Smbt, an SML build tool
+maintainer: Filip Sieczkowski <fisi@itu.dk>
+maintainer: Gian Perrone <gdpe at itu dot dk>
+keywords: build, mlton, smlnj, compiler, ffi
+bug-url: https://github.com/finrod/smbt/issues
+
