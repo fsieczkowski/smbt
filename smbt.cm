@@ -1,0 +1,8 @@
+Group is
+
+  (* dependencies *)
+  $SMACKAGE/cmlib/v1/cmlib.cm
+  $SMACKAGE/parcom/v1.0.4/parcom.cm
+
+  (* smbt *)
+  src/parser.sml
