@@ -27,5 +27,11 @@ struct
     (** Run in continuous mode, in which the target's files are watched,
         and the target is re-run whenever files are modified. **)
     val continuous : bool ref = ref false
+
+    (** Output verbose information while running. **)
+    val verbose : bool ref = ref false
+
+    (** Output what the tool *would* do, but do not actually execute it. **)
+    val noExec : bool ref = ref false
 end
 

@@ -27,8 +27,11 @@ struct
        "smbt " ^ Version.version ^ "\n" ^
        "Usage: smbt [options] [build-file] <target>\n" ^
        "Options:\n" ^
+       "  -c, --continuous\tRe-run <target> on source modification.\n" ^
        "  -h, --help\t\tDisplay this usage information and exit.\n" ^
-       "  -c, --continuous\tRe-run <target> on source modification.\n"
+       "  -n, --noexec\t\tOutput commands without actually executing them.\n" ^
+       "  -v, --version\t\tOutput version information and exit.\n" ^
+       "  -V\t\t\tEnable verbose output.\n"
 
     fun runTarget (buildFile,tgt) =
         let
@@ -47,6 +50,11 @@ struct
               | parseArgs ("-h"::_) = (print usage; OS.Process.success)
               | parseArgs ("-c"::t) = (Config.continuous := true; parseArgs t)
               | parseArgs ("--continuous"::t) = (Config.continuous := true; parseArgs t)
+              | parseArgs ("-V"::t) = (Config.verbose := true; parseArgs t)
+              | parseArgs ("-v"::_) = (print (Version.version ^ "\n"); OS.Process.success)
+              | parseArgs ("--version"::_) = (print (Version.version ^ "\n"); OS.Process.success)
+              | parseArgs ("-n"::t) = (Config.noExec := true; parseArgs t)
+              | parseArgs ("-noexec"::t) = (Config.noExec := true; parseArgs t)
               | parseArgs [target] = 
                     (print ("Build file: build.sm Target: " ^ target ^ "\n"); 
                      runTarget ("build.sm", target);

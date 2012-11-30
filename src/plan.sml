@@ -25,9 +25,20 @@ signature PLAN =
 sig
     type t
 
+    (** an empty plan. **)
     val empty : t
+
+    (** Execute a given plan. **)
     val execute : t -> unit
+
+    (** Execute a plan once, then re-execute on every modification of files. **)
     val watch : t -> unit
+
+    (** Append one plan with another. **)
+    val compose : t -> t -> t
+
+    (** Pretty-print a plan, mostly for debugging. **)
+    val toString : t -> string
 end
 
 (** The structure for target plans, which represent everything needed
@@ -40,6 +51,8 @@ struct
 
     fun execute t = print "Execute plan.\n"
 
+    (** Execute the plan, and then go into a watch loop, re-invoking execute
+        whenever files are modified. **)
     fun watch t =
         let
             val _ = execute t
@@ -48,5 +61,9 @@ struct
         in
             watch t
         end
+
+    fun compose p p' = empty
+
+    fun toString p = "<PLAN>"
 
 end
