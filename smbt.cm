@@ -6,3 +6,4 @@ Group is
 
   (* smbt *)
   src/parser.sml
+  src/elaborate.sml
