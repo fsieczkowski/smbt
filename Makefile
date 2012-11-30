@@ -1,6 +1,10 @@
 MLTON=mlton
 BIN=bin
-SOURCES=src/parser.sml
+SOURCES=src/parser.sml \
+	src/main.sml \
+	src/version.sml \
+	src/plan.sml \
+	src/config.sml
 
 all: mlton
 

@@ -26,19 +26,38 @@ struct
     val usage =
        "smbt " ^ Version.version ^ "\n" ^
        "Usage: smbt [options] [build-file] <target>\n" ^
-       "  Options:\n" ^
-       "\t-h, --help\t\tDisplay this usage information and exit.\n"
+       "Options:\n" ^
+       "  -h, --help\t\tDisplay this usage information and exit.\n" ^
+       "  -c, --continuous\tRe-run <target> on source modification.\n"
+
+    fun runTarget (buildFile,tgt) =
+        let
+            val parsed = Parser.parseFileSuc buildFile
+            val target = Plan.empty
+        in
+            if (!Config.continuous) then
+                Plan.watch target (* Run in continuous mode. *)
+            else
+                Plan.execute target (* Execute immediately, then exit. *)
+        end
 
     fun main (name,args) =
         let
-            val res = case args of
-                        ("--help"::_) => (print usage; OS.Process.success)
-                      | ("-h"::_) => (print usage; OS.Process.success)
-                      | [target] => (print ("Build file: build.sm Target: " ^ target ^ "\n"); OS.Process.success)
-                      | [buildFile,target] => (print ("Build file: " ^ buildFile ^ " Target: " ^ target ^ "\n"); OS.Process.success)
-                      | _ => (print usage; OS.Process.success)
+            fun parseArgs ("--help"::_) = (print usage; OS.Process.success)
+              | parseArgs ("-h"::_) = (print usage; OS.Process.success)
+              | parseArgs ("-c"::t) = (Config.continuous := true; parseArgs t)
+              | parseArgs ("--continuous"::t) = (Config.continuous := true; parseArgs t)
+              | parseArgs [target] = 
+                    (print ("Build file: build.sm Target: " ^ target ^ "\n"); 
+                     runTarget ("build.sm", target);
+                     OS.Process.success)
+              | parseArgs [buildFile,target] = 
+                    (print ("Build file: " ^ buildFile ^ " Target: " ^ target ^ "\n");
+                     runTarget (buildFile, target);
+                     OS.Process.success)
+              | parseArgs _ = (print usage; OS.Process.success)
         in
-            res
+            parseArgs args
         end
 end
 
