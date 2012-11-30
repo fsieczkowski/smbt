@@ -21,32 +21,33 @@
  *
 *)
 
-signature PLAN =
+signature WATCH =
 sig
-    type t
-
-    val empty : t
-    val execute : t -> unit
-    val watch : t -> unit
+    val until : string list -> unit
 end
 
-(** The structure for target plans, which represent everything needed
-  to generate target files and execute commands. **)
-structure Plan :> PLAN =
+(** Watch a list of files and do things when they are modified. **)
+structure Watch :> WATCH =
 struct
-    type t = unit
-
-    val empty = ()
-
-    fun execute t = print "Execute plan.\n"
-
-    fun watch t =
+    (** Poll a list of (file * Time.time), returning on change. **)
+    fun poll l =
         let
-            val _ = execute t
-            val _ = Watch.until ["foo.txt"]
-            val _ = print ("Modification detected, executing target...\n")
+            val _ = OS.Process.sleep (Time.fromSeconds 1) (* 1 second sleep *)
+            
+            val modified =
+                List.exists (fn (f,t) =>
+                    Time.> (OS.FileSys.modTime f, t)) l
         in
-            watch t
+            if modified then () else poll l
+        end
+
+    (** Block on modification of a list of files. **)
+    fun until fl =
+        let
+            val fl' = map (fn f => (f, OS.FileSys.modTime f)) fl
+        in
+            poll fl'
         end
 
 end
+

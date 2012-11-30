@@ -5,6 +5,7 @@ $(SMACKAGE)/parcom/v1/parcom.mlb
 config.sml
 parser.sml
 version.sml
+watch.sml
 plan.sml
 main.sml
 

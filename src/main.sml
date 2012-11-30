@@ -32,7 +32,7 @@ struct
 
     fun runTarget (buildFile,tgt) =
         let
-            val parsed = Parser.parseFileSuc buildFile
+            (* val parsed = Parser.parseFileSuc buildFile *)
             val target = Plan.empty
         in
             if (!Config.continuous) then
