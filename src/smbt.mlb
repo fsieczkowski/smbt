@@ -1,0 +1,12 @@
+$(MLTON_ROOT)/basis/basis.mlb
+$(SMACKAGE)/cmlib/v1/cmlib.mlb
+$(SMACKAGE)/parcom/v1/parcom.mlb
+
+config.sml
+parser.sml
+elaborate.sml
+version.sml
+watch.sml
+plan.sml
+main.sml
+
