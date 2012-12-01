@@ -101,7 +101,7 @@ struct
 	    val start = fd deps p
 	in case os of NONE => start | SOME sl => aux sl start
 	end
-    (** Build a plan out of a .sb file **)
+    (** Build a plan out of an .sb file **)
     and parseFile fp tname =
 	let val (ss, targs) = Elaborate.substAndElab (Parser.parseFile fp)
 	    val sl = case selectMany tname targs of
@@ -113,10 +113,11 @@ struct
 
     (** Execute the plan, and then go into a watch loop, re-invoking execute
         whenever files are modified. **)
-    fun watch t =
+    fun watch (t : t) =
         let
             val _ = execute t
-            val _ = Watch.until ["foo.txt"]
+	    val fs = case #ffi t of SOME (FFID f) => #ffisrc f | NONE => []
+            val _ = Watch.until (fs @ #srcs t)
             val _ = print ("Modification detected, executing target...\n")
         in
             watch t

@@ -35,8 +35,7 @@ struct
 
     fun runTarget (buildFile,tgt) =
         let
-            (* val parsed = Parser.parseFileSuc buildFile *)
-            val target = Plan.empty
+            val target = Plan.parseFile buildFile tgt
         in
             if (!Config.continuous) then
                 Plan.watch target (* Run in continuous mode. *)
