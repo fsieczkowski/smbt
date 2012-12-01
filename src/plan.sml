@@ -109,13 +109,32 @@ struct
 		       | NONE => raise Fail ("Target " ^ tname ^ " not found!")
 	in foldSlice sl end
 
-    fun toString p = 
+    fun toString (p : t) = 
         "Plan:\n" ^
         getOrNone "" (Option.map ffidecToString (#ffi p)) ^ "\n" ^
         "Sources: " ^ String.concatWith ", " (#srcs p) ^ "\n" ^
         "Options:\n" ^ String.concatWith "\n" (map (fn (k,v) => k ^ " = " ^ v) (#opts p)) ^ "\n"
 
-    fun execute t = print (toString t)
+    fun execute (t : t) =
+        let
+            val c = MLtonCompiler.addSources MLtonCompiler.empty (#srcs t)
+            val c' = case #ffi t of NONE => c | SOME (FFID f) =>
+                let
+                    val c' = MLtonCompiler.addFFISources c (#ffisrc f)
+                    val c'' = MLtonCompiler.addLinkOpts c' (#lnkopts f)
+                in
+                    case #cflags f of NONE => c'' | SOME f' => MLtonCompiler.addCFlags c'' f'
+                end
+
+            val c'' = MLtonCompiler.setOutput c' "foo.exe"
+
+            val ep = MLtonCompiler.generateFiles c''
+
+            val _ = MLtonCompiler.invoke ep
+        in
+            ()
+        end
+
     (** Execute the plan, and then go into a watch loop, re-invoking execute
         whenever files are modified. **)
 

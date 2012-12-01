@@ -6,6 +6,8 @@ SOURCES=src/parser.sml \
 	src/plan.sml \
 	src/watch.sml \
 	src/elaborate.sml \
+	src/mlton.sml \
+	src/compiler.sml \
 	src/config.sml
 
 all: mlton

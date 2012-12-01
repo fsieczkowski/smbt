@@ -55,7 +55,7 @@ struct
               | parseArgs ("-n"::t) = (Config.noExec := true; parseArgs t)
               | parseArgs ("-noexec"::t) = (Config.noExec := true; parseArgs t)
               | parseArgs [target] = 
-                    (print ("Build file: build.sm Target: " ^ target ^ "\n"); 
+                    (if String.isSuffix ".sm" target then raise Fail "Failed to specify a target!" else (); 
                      runTarget ("build.sm", target);
                      OS.Process.success)
               | parseArgs [buildFile,target] = 

@@ -7,6 +7,8 @@ parser.sml
 elaborate.sml
 version.sml
 watch.sml
+compiler.sml
+mlton.sml
 plan.sml
 main.sml
 
