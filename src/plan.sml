@@ -56,8 +56,11 @@ struct
 
     val empty = {ffi = NONE, srcs = [], opts = []}
 
-    (* TODO: figure this one out *)
+    (* TODO: figure this one out, some options might be duplicated or contradictory. *)
     fun composeCFlags c1 c2 = c1 ^ c2
+
+    (** Compose the FFI blocks; the right-hand side block is preferred when
+        header files are considered. **)
     fun composeFFI (FFID f1) (FFID f2) =
 	let fun compcf c1 c2 =
 		case c1 of NONE => c2
@@ -70,6 +73,8 @@ struct
 		 cflags = compcf (#cflags f1) (#cflags f2), hdr = comphdr (#hdr f1) (#hdr f2)}
 	end
 
+    (** Compose two plans; the right-hand side plan has preference when it comes to
+        options (hence, these options put in the front) **)
     fun compose (p : t) (p' : t) =
 	let fun cmp f1 f2 =
 		case f1 of NONE => f2
@@ -90,9 +95,14 @@ struct
       | selectMany target (td :: ts) = case selectOne target td of
 					   NONE => selectMany target ts
 					 | SOME s => SOME s
+
     (** Handle the dependencies: generate the appropriate plan from the link & target **)
-    fun handlePkg (SmackPKG _) = raise Fail "Smackage packages not supported (yet!)."
+    fun handlePkg (SmackPKG (pkg, vsn, tn)) =
+	(* TODO: to implement this we'd need to expose an appropriate interface
+	   in Smackage *)
+	raise Fail "Smackage packages not supported (yet!)."
       | handlePkg (LocalPKG (p, tn)) = parseFile p tn
+
     (** Transform the selected slice into a plan **)
     and foldSlice (Slice (p, deps, os)) =
 	let fun fd deps s = List.foldl (fn (pk, s) => compose (handlePkg pk) s) s deps
@@ -101,9 +111,10 @@ struct
 	    val start = fd deps p
 	in case os of NONE => start | SOME sl => aux sl start
 	end
-    (** Build a plan out of an .sb file **)
+
+    (** Build a plan using an .sb file **)
     and parseFile fp tname =
-	let val (ss, targs) = Elaborate.substAndElab (Parser.parseFile fp)
+	let val (ss, targs) = Elaborate.elaborateSmb (Parser.parseFile fp)
 	    val sl = case selectMany tname targs of
 			 SOME s => s
 		       | NONE => raise Fail ("Target " ^ tname ^ " not found!")
@@ -137,7 +148,6 @@ struct
 
     (** Execute the plan, and then go into a watch loop, re-invoking execute
         whenever files are modified. **)
-
     fun watch (t : t) = 
         let
             val _ = execute t
