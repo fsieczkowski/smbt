@@ -7,6 +7,9 @@ SOURCES=src/parser.sml \
 	src/watch.sml \
 	src/elaborate.sml \
 	src/mlton.sml \
+	src/smlnj.sml \
+	src/polyml.sml \
+	src/moscowml.sml \
 	src/compiler.sml \
 	src/config.sml
 

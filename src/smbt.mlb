@@ -9,6 +9,9 @@ version.sml
 watch.sml
 compiler.sml
 mlton.sml
+smlnj.sml
+polyml.sml
+moscowml.sml
 plan.sml
 main.sml
 
