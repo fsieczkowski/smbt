@@ -1,0 +1,21 @@
+specpath /foo/bar
+
+target mlton
+	ffi
+    	sml-readline.c
+  	end
+
+  	sources
+    	readline.sml
+  	end
+
+  	target test
+		sources
+			readline-test.sml
+		end
+
+		option compiler = mlton
+		option output = readline-test
+  	end
+end
+

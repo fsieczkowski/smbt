@@ -30,6 +30,29 @@ struct
   datatype dec    = Dec of {ffi : ffidec option, src : string list, deps : pkgdec list,
                             opts : (string * string) list, targets : (string * dec) list}
 
+  fun getOrNone d NONE = d
+    | getOrNone d (SOME t) = t
+
+  fun ffidecToString (FFID {ffisrc,lnkopts,cflags,hdr}) =
+        "FFI:\n" ^
+        "  Sources: " ^ String.concatWith ", " ffisrc ^ "\n" ^
+        "  Linkopts: " ^ String.concatWith ", " lnkopts ^ "\n" ^
+        "  CFlags: " ^ getOrNone "" cflags ^ "\n" ^
+        "  Header: " ^ getOrNone "" hdr
+
+
+  fun pkgdecToString (SmackPKG (name,vers,target)) = 
+        "Smackage(" ^ name ^ ", " ^ vers ^ ", " ^ target ^ ")"
+   | pkgdecToString (LocalPKG (path,target)) =
+        "Local(" ^ path ^ ", " ^ target ^ ")"
+
+  fun decToString ind (Dec {ffi, src, deps, opts,targets}) =
+        ind ^ "Dec:\n" ^
+        ind ^ getOrNone "" (Option.map ffidecToString ffi) ^ "\n" ^
+        ind ^ "Sources: " ^ String.concatWith ", " src ^ "\n" ^
+        ind ^ "Dependencies: " ^ String.concatWith ", " (map pkgdecToString deps) ^ "\n" ^
+        ind ^ "Targets:\n" ^
+        String.concatWith "\n" (map (fn (n,d) => ind ^ n ^ ":\n" ^ decToString (ind ^ "   ") d) targets)
 end
 
 (** Elaboration process takes a complete SMBT build description and proceeds by

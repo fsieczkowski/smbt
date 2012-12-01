@@ -41,7 +41,7 @@ struct
                 Plan.watch target (* Run in continuous mode. *)
             else
                 Plan.execute target (* Execute immediately, then exit. *)
-        end
+        end handle (Parser.ParseError s) => print ("Parse error: " ^ s ^ "\n")
 
     fun main (name,args) =
         let
