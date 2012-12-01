@@ -141,6 +141,8 @@ struct
       in List.map elab fs; FFID {cflags = !cfl, ffisrc = rev (!src), hdr = !hdr, lnkopts = rev (!lnk)}
       end
 
+  val targets = ref [] : string list ref
+
   local type edec = {ffib : ffidec option ref, srcs : string list option ref, pkgs : pkgdec list ref,
 		     opts : (string * string) list ref, tars : (string * dec) list ref}
 	fun defED () = {ffib = ref NONE, srcs = ref NONE, pkgs = ref [], opts = ref [], tars = ref []} : edec
@@ -162,8 +164,12 @@ struct
       let val pkgs = #pkgs ed
       in pkgs := AST.SmackPKG (n, v, getOpt (ot, tn)) :: !pkgs end
     | elabDec ed tn (Pkg (LocalPKG (n, t))) = let val pkgs = #pkgs ed in pkgs := AST.LocalPKG (n, t) :: !pkgs end
-    (* TODO: check target uniqueness *)
-    | elabDec ed _  (Target (tn, ds)) = let val tars = #tars ed in tars := (tn, elabDecs ds tn) :: !tars end
+    | elabDec ed _  (Target (tn, ds)) =
+      let val tars = #tars ed
+	  val _ = if List.exists (fn x => x = tn) (!targets)
+		  then raise ElabError ("Duplicate target names " ^ tn)
+		  else targets := tn :: !targets
+      in tars := (tn, elabDecs ds tn) :: !tars end
     | elabDec ed tn (Macro _) = raise ElabError "Unexpanded macro located."
   and elabDecs ds tn =
     let val ed = defED ()
@@ -173,8 +179,12 @@ struct
     end
   end
 
-  fun elabSmb (ss, ts) = (ss, List.map (fn Pre_AST.Target (tn, ds) => (tn, elabDecs ds tn)
-					  | _ => raise ElabError "Non-target found at toplevel") ts)
+  fun elabSmb (ss, ts) =
+      let fun matchT (Pre_AST.Target (tn, ds)) = (tn, elabDecs ds tn)
+	    | matchT _ = raise ElabError "Non-target found at the top level."
+	  val _ = targets := []
+      in  (ss, List.map matchT ts)
+      end
 
   fun elaborateSmb (ss, ts) = elabSmb (ss, expandMacros ts)
 

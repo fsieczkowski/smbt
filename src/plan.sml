@@ -120,7 +120,7 @@ struct
 		       | NONE => raise Fail ("Target " ^ tname ^ " not found!")
 	in foldSlice sl end
 
-    fun toString p = 
+    fun toString (p : t) = 
         "Plan:\n" ^
         getOrNone "" (Option.map ffidecToString (#ffi p)) ^ "\n" ^
         "Sources: " ^ String.concatWith ", " (#srcs p) ^ "\n" ^
