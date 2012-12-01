@@ -1,3 +1,26 @@
+(* Smbt, an SML build tool
+ *  Copyright (c) 2012 Filip Sieczkowski & Gian Perrone
+ * 
+ * Permission to use, copy, modify, and distribute this software and its
+ * documentation for any purpose and without fee is hereby granted,
+ * provided that the above copyright notice appear in all copies and that
+ * both the copyright notice and this permission notice and warranty
+ * disclaimer appear in supporting documentation, and that the name of
+ * the above copyright holders, or their entities, not be used in
+ * advertising or publicity pertaining to distribution of the software
+ * without specific, written prior permission.
+ * 
+ * The above copyright holders disclaim all warranties with regard to
+ * this software, including all implied warranties of merchantability and
+ * fitness. In no event shall the above copyright holders be liable for
+ * any special, indirect or consequential damages or any damages
+ * whatsoever resulting from loss of use, data or profits, whether in an
+ * action of contract, negligence or other tortious action, arising out
+ * of or in connection with the use or performance of this software.
+ *
+*)
+
+(** This structure contains the datatypes that describe elaborated Smbt entities **)
 structure AST =
 struct
 
@@ -9,14 +32,31 @@ struct
 
 end
 
-structure Elaborate =
+(** Elaboration process takes a complete SMBT build description and proceeds by
+ *  expanding the macro definitions and gathers the appropriate parts of targets
+ *  into a more convenient format described by the AST structure. It also performs
+ *  further syntactic well-formedness checks. **)
+signature ELAB =
+sig
+
+    exception ElabError of string
+
+    val elaborateSmb : Pre_AST.spec * Pre_AST.dec list ->
+		       Pre_AST.spec * (string * AST.dec) list
+
+end
+
+structure Elaborate :> ELAB =
 struct
 
   open AST
+  exception ElabError of string
+
   local 
     open Pre_AST
     open Sum
 
+    (** replace all occurrences of "from" with "to" in the given "text" **)
     fun replaceAll from to text =
 	let val pat = String.explode ("$(" ^ from ^ ")")
             val sub = rev (String.explode to)
@@ -30,6 +70,8 @@ struct
 	in aux ([], String.explode text)
 	end
   in
+  (** Expand all the macro definitions throughout the declarations.
+      This respects the scope of definitions **)
   fun expandMacros ds =
       let fun subst env str = List.foldl (fn ((f, t), str) => replaceAll f t str) str env
 	  fun expFFI env f =
@@ -55,8 +97,7 @@ struct
       end
   end
 
-  exception ElabError of string
-
+  (** Check well-formedness of an ffi block and fold it into a convenient structure **)
   fun elabFFI fs =
       let val src = ref ([] : string list)
 	  val lnk = ref ([] : string list)
@@ -112,7 +153,6 @@ struct
   fun elabSmb (ss, ts) = (ss, List.map (fn Pre_AST.Target (tn, ds) => (tn, elabDecs ds tn)
 					  | _ => raise ElabError "Non-target found at toplevel") ts)
 
-  fun substAndElab (ss, ts) = elabSmb (ss, expandMacros ts)
-  fun doit s = substAndElab (Parser.parse Parser.smb s)
+  fun elaborateSmb (ss, ts) = elabSmb (ss, expandMacros ts)
 
 end
