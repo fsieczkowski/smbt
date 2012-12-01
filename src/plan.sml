@@ -109,11 +109,17 @@ struct
 		       | NONE => raise Fail ("Target " ^ tname ^ " not found!")
 	in foldSlice sl end
 
-    fun execute t = print "Execute plan.\n"
+    fun toString p = 
+        "Plan:\n" ^
+        getOrNone "" (Option.map ffidecToString (#ffi p)) ^ "\n" ^
+        "Sources: " ^ String.concatWith ", " (#srcs p) ^ "\n" ^
+        "Options:\n" ^ String.concatWith "\n" (map (fn (k,v) => k ^ " = " ^ v) (#opts p)) ^ "\n"
 
+    fun execute t = print (toString t)
     (** Execute the plan, and then go into a watch loop, re-invoking execute
         whenever files are modified. **)
-    fun watch (t : t) =
+
+    fun watch (t : t) = 
         let
             val _ = execute t
 	    val fs = case #ffi t of SOME (FFID f) => #ffisrc f | NONE => []
@@ -122,7 +128,5 @@ struct
         in
             watch t
         end
-
-    fun toString p = "<PLAN>"
 
 end

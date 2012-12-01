@@ -22,7 +22,7 @@ struct
 
   (* parsers for first and subsequent chars of operators *)
   val opStart         = char #"="
-  val opLetter        = fail "Multi-charachter operators not supported." : scanner
+  val opLetter        = fail "Multi-character operators not supported." : scanner
 
   (* reserved keywords and operators *)
   val reservedNames   = ["smackspec", "specpath", "target", "option", "ffi", "smb",
