@@ -27,7 +27,54 @@ struct
 
     val name = "PolyML"
 
-    fun compile' (srcs,ffisrcs,lnkopts,cflags,hdr,opts) output = ()
+    fun compile' (srcs,ffisrcs,lnkopts,cflags,hdr,opts) output =
+        let
+            val _ = print " - Invoking PolyML\n"
+
+            val polyml = case selectOpt opts "polyml" of
+                SOME t => t
+              | NONE => "poly"
+
+            val cc = case selectOpt opts "cc" of
+                SOME t => t
+              | NONE => "cc"
+
+            val dir = tempdir ()
+            val polyGoFile = dir ^ "/smbt-poly-main.sml"
+
+            val objFile' = case selectOpt opts "objectFile" of
+                  SOME t => t
+                | NONE => "smbt-poly-export"
+
+            val objFile = 
+                    OS.Path.mkAbsolute {path=objFile', 
+                        relativeTo = OS.FileSys.fullPath (OS.Path.dir output)}
+
+            val exportFn = case selectOpt opts "exportFn" of 
+                SOME t => t
+              | NONE => raise Fail "PolyML Output requires 'exportFn' directive.\n"
+
+            val fp = TextIO.openOut polyGoFile
+            val _ = TextIO.output (fp,
+                        String.concatWith "\n" (map (fn f => "use \"" ^ absolutePath f ^ "\";") (List.rev srcs)) ^ "\n" ^
+                        "PolyML.export (\"" ^ objFile ^ "\", " ^ exportFn ^ ");\n"
+                        )
+            val _ = TextIO.closeOut fp
+            
+            val cmd = polyml ^ " < " ^ polyGoFile
+            val _ = exec cmd
+            
+            val _ = print (" - Object file: " ^ statFile (objFile ^ ".o") ^ "\n")
+
+            val ccmd = [cc] @ cflags @ ["-o", output, objFile ^ ".o", "-lpolymain -lpolyml"] @ lnkopts
+            val _ = print (" - Linking\n")
+            val _ = exec (String.concatWith " " ccmd)
+
+            val _ = print (" - Output: " ^ statFile output ^ "\n")
+        in
+            ()
+        end
+
 
     fun compile (c as (srcs,ffisrcs,lnkopts,cflags,hdr,opts)) =
         case selectOpt opts "output" of

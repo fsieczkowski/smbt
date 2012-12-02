@@ -1,0 +1,48 @@
+specpath readline.smackspec
+
+target mlton
+    sources
+    	src/smbt.mlb
+	src/go.sml
+    end
+    
+    option compiler = mlton 
+    option output = bin/smbt
+end
+
+target smlnj
+    sources
+        src/smbt.cm
+    end
+
+    option compiler = smlnj
+    option exportFn = Smbt.main
+    option heapImg = bin/.heapimg
+    option output = bin/smbt-nj
+end
+
+target polyml
+    smb /Users/gdpe/.smackage/lib/parcom/v1/parcom.sm parcom 
+    smb /Users/gdpe/.smackage/lib/cmlib/v1/cmlib.sm cmlib
+
+    sources
+       src/config.sml
+       src/parser.sml
+       src/elaborate.sml
+       src/version.sml
+       src/watch.sml
+       src/compiler.sml
+       src/mlton.sml
+       src/smlnj.sml
+       src/polyml.sml
+       src/moscowml.sml
+       src/plan.sml
+       src/main.sml
+       src/go-poly.sml
+    end
+
+    option compiler = polyml
+    option exportFn = PolyMain.polyMain
+    option output = bin/smbt-poly
+end
+

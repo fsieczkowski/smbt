@@ -133,7 +133,7 @@ struct
 	(* TODO: to implement this we'd need to expose an appropriate interface
 	   in Smackage *)
 	raise Fail "Smackage packages not supported (yet!)."
-      | handlePkg (LocalPKG (p, tn)) = parseFile p tn handle _ => raise Fail ("Package include file '" ^ p ^ "' not found.")
+      | handlePkg (LocalPKG (p, tn)) = parseFile p tn handle e => (print ("Package include for '" ^ p ^ "' failed.\n"); raise e)
 
     (** Transform the selected slice into a plan **)
     and foldSlice (Slice (p, deps, os)) =

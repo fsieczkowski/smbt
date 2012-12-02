@@ -1,0 +1,11 @@
+specpath foo
+
+target polyml
+    sources
+        test.sml
+    end
+
+    option exportFn = test
+    option compiler = polyml
+    option output = hello
+end

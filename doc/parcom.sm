@@ -1,0 +1,14 @@
+specpath foo
+
+target parcom
+  sources
+  	src/parse.sig
+  	src/parse.sml
+  	src/charparse.sig
+  	src/charparse.sml
+  	src/tokparse.sig
+  	src/tokparse.sml
+  	src/langparse.sml
+  end
+end
+
