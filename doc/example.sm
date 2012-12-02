@@ -1,12 +1,14 @@
-specpath /foo/bar
+specpath readline.smackspec
 
 target mlton
     ffi
         sml-readline.c
+	lnkopt -lreadline
     end
 
     sources
-        $(SML_BASIS)/basis.mlb
+    	$(SML_LIB)/basis/basis.mlb
+	$(SML_LIB)/basis/mlton.mlb
         readline.sml
     end
 
