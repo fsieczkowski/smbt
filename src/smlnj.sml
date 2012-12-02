@@ -27,7 +27,62 @@ struct
 
     val name = "SML/NJ"
 
-    fun compile' (srcs,ffisrcs,lnkopts,cflags,hdr,opts) output = ()
+    fun compile' (srcs,ffisrcs,lnkopts,cflags,hdr,opts) output =
+        let
+            val _ = print " - Invoking SML/NJ\n"
+
+            val smlnj = case selectOpt opts "smlnj" of
+                SOME t => t
+              | NONE => "sml"
+
+            val dir = tempdir ()
+            val cmFile = dir ^ "/smbt-build.cm"
+            val njGoFile = dir ^ "/smbt-smlnj-main.sml"
+
+            val heapImg' = case selectOpt opts "heapimg" of
+                  SOME t => t
+                | NONE => ".heapimg"
+
+            val heapImg = 
+                    OS.Path.mkAbsolute {path=heapImg', 
+                        relativeTo = OS.FileSys.fullPath (OS.Path.dir output)}
+
+            val exportFn = case selectOpt opts "exportFn" of 
+                SOME t => t
+              | NONE => raise Fail "SML/NJ Output requires 'exportFn' directive.\n"
+
+            val fp = TextIO.openOut cmFile
+            val _ = TextIO.output (fp,
+                        "Group is\n   " ^
+                        String.concatWith "\n   " (map absolutePath srcs) ^ "\n")
+            val _ = TextIO.closeOut fp
+
+
+            val go = TextIO.openOut njGoFile
+            val _ = TextIO.output (go,
+                        "CM.make \"" ^ absolutePath cmFile ^ "\";\n" ^
+                        "SMLofNJ.exportFn (\""^ heapImg ^"\", "^ exportFn ^");\n");
+            val _ = TextIO.closeOut go
+
+
+            val cmd = smlnj ^ " " ^ njGoFile
+
+            val _ = exec cmd
+            val _ = print (" - Heap Image: " ^ heapImg ^ "\n")
+
+            (* TODO: This is not portable.  We should be more clever about this here. *)
+            val bin = TextIO.openOut output
+            val _ = TextIO.output (bin,
+            "#!/bin/sh\n" ^
+            "exec \"" ^ smlnj ^ "\" @SMLcmdname=$0 @SMLload=\""^ heapImg ^"\" \"$@\"\n")
+            val _ = TextIO.closeOut bin
+
+            val _ = exec ("chmod a+x \""^ output ^"\"")
+
+            val _ = print (" - Output: " ^ statFile output ^ "\n")
+        in
+            ()
+        end
 
     fun compile (c as (srcs,ffisrcs,lnkopts,cflags,hdr,opts)) =
         case selectOpt opts "output" of

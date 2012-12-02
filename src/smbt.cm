@@ -1,0 +1,16 @@
+Group is
+   $SMACKAGE/cmlib/v1/cmlib.cm
+   $SMACKAGE/parcom/v1/parcom.cm
+   config.sml
+   parser.sml
+   elaborate.sml
+   version.sml
+   watch.sml
+   compiler.sml
+   mlton.sml
+   smlnj.sml
+   polyml.sml
+   moscowml.sml
+   plan.sml
+   main.sml
+
