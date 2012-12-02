@@ -29,6 +29,12 @@ struct
 
     fun compile' (srcs,ffisrcs,lnkopts,cflags,hdr,opts) output =
         let
+            val _ = print " - Invoking MLton\n"
+
+            val mlton = case selectOpt opts "mlton" of
+                SOME t => t
+              | NONE => "mlton"
+
             val genFile = tempdir () ^ "/smbt-build.mlb"
             val fp = TextIO.openOut genFile
             val _ = TextIO.output (fp,
@@ -43,7 +49,7 @@ struct
             val _ = TextIO.closeOut fp
             
             val cmd =
-                ["mlton",
+                [mlton,
                  "-output", output] @
                 (case hdr of NONE => nil | SOME h =>
                     ["-export-header", h]) @
@@ -57,6 +63,8 @@ struct
             val cmd' = String.concatWith " " cmd
 
             val _ = exec cmd'
+
+            val _ = print (" - Output: " ^ statFile output ^ "\n")
         in
             ()
         end

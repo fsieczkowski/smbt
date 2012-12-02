@@ -108,6 +108,13 @@ struct
           | SOME "moscowml" => MoscowML
           | SOME "mlkit" => MLKit
           | SOME s => raise Fail ("Unknown compiler `" ^ s ^ "'.")
+     
+    fun statFile f =
+        let
+            val s = OS.FileSys.fileSize f
+        in
+            f ^ " (" ^ Position.toString s ^ " bytes)"
+        end handle _ => f ^ " (inaccessible or missing - compilation failed)"
 
  end
 

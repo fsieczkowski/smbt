@@ -33,6 +33,11 @@ struct
        "  -v, --version\t\tOutput version information and exit.\n" ^
        "  -V\t\t\tEnable verbose output.\n"
 
+    fun printHdr (buildFile,tgt) =
+        print ("smbt " ^ Version.version ^ "\n" ^
+                " - Build file: " ^ buildFile ^ "\n" ^
+                " - Target: " ^ tgt ^ "\n")
+
     fun runTarget (buildFile,tgt) =
         let
             val target = Plan.parseFile buildFile tgt
@@ -60,11 +65,12 @@ struct
               | parseArgs ("-n"::t) = (Config.noExec := true; parseArgs t)
               | parseArgs ("-noexec"::t) = (Config.noExec := true; parseArgs t)
               | parseArgs [target] = 
-                    (if String.isSuffix ".sm" target then raise Fail "Failed to specify a target!" else (); 
+                    (if String.isSuffix ".sm" target then raise Fail "Failed to specify a target!" else ();
+                     printHdr ("build.sm", target);
                      runTarget ("build.sm", target);
                      OS.Process.success)
               | parseArgs [buildFile,target] = 
-                    (print ("Build file: " ^ buildFile ^ " Target: " ^ target ^ "\n");
+                    (printHdr (buildFile, target);
                      runTarget (buildFile, target);
                      OS.Process.success)
               | parseArgs _ = (print usage; OS.Process.success)
