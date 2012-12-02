@@ -29,6 +29,7 @@ struct
        "Options:\n" ^
        "  -c, --continuous\tRe-run <target> on source modification.\n" ^
        "  -h, --help\t\tDisplay this usage information and exit.\n" ^
+       "  -i, --interactive\tEnter an interactive prompt (if possible).\n" ^
        "  -n, --noexec\t\tOutput commands without actually executing them.\n" ^
        "  -v, --version\t\tOutput version information and exit.\n" ^
        "  -V\t\t\tEnable verbose output.\n"
@@ -57,6 +58,8 @@ struct
         let
             fun parseArgs ("--help"::_) = (print usage; OS.Process.success)
               | parseArgs ("-h"::_) = (print usage; OS.Process.success)
+              | parseArgs ("-i"::t) = (Config.interactive := true; parseArgs t)
+              | parseArgs ("--interactive"::t) = (Config.interactive := true; parseArgs t)
               | parseArgs ("-c"::t) = (Config.continuous := true; parseArgs t)
               | parseArgs ("--continuous"::t) = (Config.continuous := true; parseArgs t)
               | parseArgs ("-V"::t) = (Config.verbose := true; parseArgs t)

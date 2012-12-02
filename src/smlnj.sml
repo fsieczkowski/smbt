@@ -89,4 +89,12 @@ struct
                 SOME output => compile' c output
               | NONE => raise Fail ("Compiler invoked with no output.\n")
 
+    fun interactive (c as (srcs,ffisrcs,lnkopts,cflags,hdr,opts)) =
+        let
+            val _ = exec ("sml")
+        in
+            ()
+        end
+
+
 end

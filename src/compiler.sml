@@ -40,6 +40,9 @@ sig
     (** Invoke a compiler. Non-opaque types (and tuples, no less!) so that we 
        can share an interface between different compilers. **)
     val compile : compileTask -> unit
+
+    (** Invoke the compiler in interactive mode (if possible...) **)
+    val interactive : compileTask -> unit
 end
 
 (** Implements common functionality that may be shared easily across compilers and tools. **)

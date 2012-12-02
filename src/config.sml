@@ -33,5 +33,8 @@ struct
 
     (** Output what the tool *would* do, but do not actually execute it. **)
     val noExec : bool ref = ref false
+
+    (** For the compilers that support it, enter a REPL after loading the target. **)
+    val interactive : bool ref = ref false
 end
 

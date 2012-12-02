@@ -74,6 +74,9 @@ struct
                 SOME output => compile' c output
               | NONE => raise Fail ("Compiler invoked with no output.\n")
 
+    fun interactive (c as (srcs,ffisrcs,lnkopts,cflags,hdr,opts)) =
+            raise Fail ("MLton cannot be used in interactive mode.")
+
 end
 
 

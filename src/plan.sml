@@ -185,8 +185,26 @@ struct
                   | CompilerUtil.PolyML => PolyMLCompiler.compile
                   | CompilerUtil.MoscowML => MoscowMLCompiler.compile
                   | _ => raise Fail "Compiler not yet supported."
+
+            val interactive = 
+                case compiler of
+                    CompilerUtil.NullCompiler => ignore
+                  | CompilerUtil.MLton => MLtonCompiler.interactive
+                  | CompilerUtil.SMLNJ => SMLNJCompiler.interactive
+                  | CompilerUtil.PolyML => PolyMLCompiler.interactive
+                  | CompilerUtil.MoscowML => MoscowMLCompiler.interactive
+                  | _ => raise Fail "Compiler not yet supported."
         in
-            if hasOutput then compile (
+            if hasOutput andalso not (!Config.interactive) then 
+                            compile (
+                                #srcs t,
+                                ffisrcs,
+                                lnkopts,
+                                cflags,
+                                hdr,
+                                #opts t)
+                else if (!Config.interactive) then
+                            interactive (
                                 #srcs t,
                                 ffisrcs,
                                 lnkopts,
