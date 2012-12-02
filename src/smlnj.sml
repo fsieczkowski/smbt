@@ -89,12 +89,34 @@ struct
                 SOME output => compile' c output
               | NONE => raise Fail ("Compiler invoked with no output.\n")
 
-    fun interactive (c as (srcs,ffisrcs,lnkopts,cflags,hdr,opts)) =
+
+    fun interactive (srcs,ffisrcs,lnkopts,cflags,hdr,opts) =
         let
-            val _ = exec ("sml")
+            val _ = print " - Invoking SML/NJ (interactive)\n"
+
+            val smlnj = case selectOpt opts "smlnj" of
+                SOME t => t
+              | NONE => "sml"
+
+            val rlwrap = case selectOpt opts "rlwrap" of
+                SOME "true" => "rlwrap "
+              | _ => ""
+
+            val dir = tempdir ()
+            val cmFile = dir ^ "/smbt-run.cm"
+
+            val fp = TextIO.openOut cmFile
+            val _ = TextIO.output (fp,
+                        "Group is\n   " ^
+                        String.concatWith "\n   " (map absolutePath srcs) ^ "\n")
+            val _ = TextIO.closeOut fp
+
+            val cmd = rlwrap ^ smlnj ^ " " ^ cmFile 
+
+            val _ = exec cmd
+
+            val _ = print (" - Interactive session finished.\n")
         in
             ()
         end
-
-
 end

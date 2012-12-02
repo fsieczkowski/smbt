@@ -18,6 +18,8 @@ target smlnj
     option compiler = smlnj
     option exportFn = Smbt.main
     option heapImg = bin/.heapimg
+    option rlwrap = true
+
     option output = bin/smbt-nj
 end
 
