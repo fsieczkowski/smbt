@@ -53,6 +53,13 @@ struct
         ind ^ "Dependencies: " ^ String.concatWith ", " (map pkgdecToString deps) ^ "\n" ^
         ind ^ "Targets:\n" ^
         String.concatWith "\n" (map (fn (n,d) => ind ^ n ^ ":\n" ^ decToString (ind ^ "   ") d) targets)
+
+  (** Add a path prefix to an FFI declaration. **)
+  fun prefixFFIDec prefix (FFID {ffisrc,lnkopts,cflags,hdr}) =
+    FFID {ffisrc = map (fn f => OS.Path.mkAbsolute {path=f, relativeTo = prefix}) ffisrc,
+          lnkopts = lnkopts,
+          cflags = cflags,
+          hdr = Option.map (fn h => OS.Path.mkAbsolute {path=h, relativeTo = prefix}) hdr}
 end
 
 (** Elaboration process takes a complete SMBT build description and proceeds by

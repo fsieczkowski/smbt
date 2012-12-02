@@ -36,6 +36,11 @@ struct
     fun runTarget (buildFile,tgt) =
         let
             val target = Plan.parseFile buildFile tgt
+
+            (* For the remainder, we execute in the directory of the current build file *)
+            val p = OS.FileSys.fullPath buildFile
+            val d = OS.Path.dir p
+            val _ = OS.FileSys.chDir d
         in
             if (!Config.continuous) then
                 Plan.watch target (* Run in continuous mode. *)

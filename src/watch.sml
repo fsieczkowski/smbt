@@ -47,7 +47,6 @@ struct
             val fl' = map (fn f => (f, OS.FileSys.modTime f)) fl
         in
             poll fl'
-        end
-
+        end handle e => (print "Continuous mode aborted.\n"; raise e)
 end
 

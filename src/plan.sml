@@ -56,6 +56,29 @@ struct
 
     val empty = {ffi = NONE, srcs = [], opts = []}
 
+    (** This attempts to deal with the messiness of relative paths.
+        For example, we have a .sm file that uses another .sm file, like so:
+
+        smb /path/to/foobar.sm bla
+
+        and in /path/to/foobar.sm, we have sources:
+          foo.sml
+          ../bar.sml
+          $(FOOBAR)/baz.mlb
+
+        These should be added to the current target as:
+          /path/to/foo.sml
+          /path/bar.sml
+          $(FOOBAR)/baz.mlb
+
+        'prefix' should be the directory that contains the .sm file,
+        e.g., /path/to
+     **)
+     fun resolvePath prefix file =
+        if ToolOpt.realFile file then
+            OS.Path.mkAbsolute {path=file, relativeTo = prefix}
+        else file
+
     (* TODO: figure this one out, some options might be duplicated or contradictory. *)
     fun composeCFlags c1 c2 = c1 ^ c2
 
@@ -74,26 +97,35 @@ struct
 	end
 
     (** Compose two plans; the right-hand side plan has preference when it comes to
-        options (hence, these options put in the front) **)
+        options (hence, these options put in the front) 
+        
+        XXX: Gian switched the order in which sources are composed,
+        so that pkg def imports would end up *before* local sources.
+        I think this is correct, but it might break other stuff.  Let's hope.
+        **)
     fun compose (p : t) (p' : t) =
 	let fun cmp f1 f2 =
 		case f1 of NONE => f2
 			 | SOME f1' => case f2 of NONE => f1
 						| SOME f2' => SOME (composeFFI f1' f2')
-	in {ffi = cmp (#ffi p) (#ffi p'), srcs = #srcs p @ #srcs p',
+	in {ffi = cmp (#ffi p) (#ffi p'), srcs = #srcs p' @ #srcs p,
 	    opts = #opts p' @ #opts p} : t
 	end
 
     (** Select an appropriate part of an AST for a given target **)
-    fun selectOne target (tname, Dec dec) =
-	let val lplan = {ffi = #ffi dec, srcs = #src dec, opts = #opts dec}
-	in if target = tname then SOME (Slice (lplan, #deps dec, NONE))
-	   else Option.map (fn s => Slice (lplan, #deps dec, SOME s))
-			   (selectMany target (#targets dec))
+    fun selectOne prefix target (tname, Dec dec) =
+	let 
+        val lplan = {ffi = Option.map (prefixFFIDec prefix) (#ffi dec), 
+                     srcs = map (resolvePath prefix) (#src dec), 
+                     opts = #opts dec}
+	in 
+        if target = tname then SOME (Slice (lplan, #deps dec, NONE))
+	        else Option.map (fn s => Slice (lplan, #deps dec, SOME s))
+			   (selectMany prefix target (#targets dec))
 	end
-    and selectMany target [] = NONE
-      | selectMany target (td :: ts) = case selectOne target td of
-					   NONE => selectMany target ts
+    and selectMany prefix target [] = NONE
+      | selectMany prefix target (td :: ts) = case selectOne prefix target td of
+					   NONE => selectMany prefix target ts
 					 | SOME s => SOME s
 
     (** Handle the dependencies: generate the appropriate plan from the link & target **)
@@ -101,7 +133,7 @@ struct
 	(* TODO: to implement this we'd need to expose an appropriate interface
 	   in Smackage *)
 	raise Fail "Smackage packages not supported (yet!)."
-      | handlePkg (LocalPKG (p, tn)) = parseFile p tn
+      | handlePkg (LocalPKG (p, tn)) = parseFile p tn handle _ => raise Fail ("Package include file '" ^ p ^ "' not found.")
 
     (** Transform the selected slice into a plan **)
     and foldSlice (Slice (p, deps, os)) =
@@ -112,12 +144,16 @@ struct
 	in case os of NONE => start | SOME sl => aux sl start
 	end
 
-    (** Build a plan using an .sb file **)
+    (** Build a plan using an .sm file **)
     and parseFile fp tname =
-	let val (ss, targs) = Elaborate.elaborateSmb (Parser.parseFile fp)
-	    val sl = case selectMany tname targs of
+	let 
+        val path = ToolOpt.absolutePath fp
+        val prefix = OS.Path.dir path
+
+        val (ss, targs) = Elaborate.elaborateSmb (Parser.parseFile fp)
+	    val sl = case selectMany prefix tname targs of
 			 SOME s => s
-		       | NONE => raise Fail ("Target " ^ tname ^ " not found!")
+		   | NONE => raise Fail ("Target " ^ tname ^ " not found!")
 	in foldSlice sl end
 
     fun toString (p : t) = 
@@ -137,11 +173,14 @@ struct
                     case #cflags f of NONE => c'' | SOME f' => MLtonCompiler.addCFlags c'' f'
                 end
 
-            val c'' = MLtonCompiler.setOutput c' "foo.exe"
+            val c'' = List.foldl (fn (a,b) => MLtonCompiler.setOption b a) c' (#opts t)
+
+            val hasOutput = List.exists (fn ("output",v) => true | _ => false) (#opts t)
 
             val ep = MLtonCompiler.generateFiles c''
 
-            val _ = MLtonCompiler.invoke ep
+            val _ = if hasOutput then MLtonCompiler.invoke ep
+                        else print "[smbt] No output target, stopping prior to compilation.\n"
         in
             ()
         end
@@ -151,9 +190,11 @@ struct
     fun watch (t : t) = 
         let
             val _ = execute t
-	    val fs = case #ffi t of SOME (FFID f) => #ffisrc f | NONE => []
-            val _ = Watch.until (fs @ #srcs t)
-            val _ = print ("Modification detected, executing target...\n")
+            val _ = print ("[smbt] In continuous mode, use ctrl-c to exit.\n")
+	        val fs = case #ffi t of SOME (FFID f) => #ffisrc f | NONE => []
+            val fs' = List.filter ToolOpt.realFile (fs @ #srcs t)
+            val _ = Watch.until fs'
+            val _ = print ("[smbt] Modification detected, executing target...\n")
         in
             watch t
         end

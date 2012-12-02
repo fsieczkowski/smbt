@@ -18,7 +18,7 @@ all: mlton
 mlton: $(BIN)/smbt
 
 $(BIN)/smbt: src/smbt.mlb $(SOURCES)
-	$(MLTON) -output $(BIN)/smbt src/smbt.mlb
+	$(MLTON) -const 'Exn.keepHistory true' -output $(BIN)/smbt src/smbt.mlb
 
 clean:
 	rm -f $(BIN)/smbt

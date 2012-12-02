@@ -50,9 +50,41 @@ struct
         let
             val _ = if (!Config.verbose) then
                         print (s ^ "\n") else ()
+
+            fun e x = if (!Config.noExec) then
+                            (print ("Execute: " ^ x ^ "\n"); true)
+                        else
+                            OS.Process.isSuccess (OS.Process.system x)
         in
-            if OS.Process.isSuccess (OS.Process.system s) then ()
+            if e s then ()
                 else raise Fail ("Invoking command `" ^ s ^ "' failed")
         end
+
+    (* If the current directory is writable, we create a directory
+       .smbt, and use that to create temp files.
+       Failing that, we try /tmp. *)
+    fun tempdir () =
+        let
+            val t = (OS.FileSys.isDir ".smbt"; true) handle OS.SysErr _ => 
+                        let
+                            val t' = OS.FileSys.mkDir ".smbt"
+                        in
+                            true
+                        end handle _ => false
+
+            val t' = if t then ".smbt" else (OS.FileSys.mkDir "/tmp/.smbt"; "/tmp/.smbt")
+        in
+            t'
+        end
+
+    (** Make all paths absolute, suitable for inclusion in MLB or CM files.
+        Careful to treat vars of the style $(SMACKAGE) or $/basis" correctly
+        (i.e., not mangling them).
+    **)
+    fun absolutePath s = if String.isPrefix "$" s then s
+                            else OS.FileSys.fullPath s handle e => raise Fail ("Source file not found: `" ^ s ^ "'\n")
+
+    (** Determine if this is a real file or not. **)
+    fun realFile s = not (String.isPrefix "$" s)
 end
 
