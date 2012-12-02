@@ -82,9 +82,30 @@ struct
               | NONE => raise Fail ("Compiler invoked with no output.\n")
 
 
-    fun interactive (c as (srcs,ffisrcs,lnkopts,cflags,hdr,opts)) =
-            raise Fail ("Interactive mode not implemented.")
+    fun interactive (srcs,ffisrcs,lnkopts,cflags,hdr,opts) =
+        let
+            val _ = print " - Invoking PolyML (interactive)\n"
 
+            val polyml = case selectOpt opts "polyml" of
+                SOME t => t
+              | NONE => "poly"
+
+            val dir = tempdir ()
+            val polyGoFile = dir ^ "/smbt-poly-run.sml"
+
+            val fp = TextIO.openOut polyGoFile
+            val _ = TextIO.output (fp,
+                        String.concatWith "\n" (map (fn f => "use \"" ^ absolutePath f ^ "\";") (List.rev srcs)) ^ "\n"
+                        )
+            val _ = TextIO.closeOut fp
+            val cmd = polyml ^ " --use " ^ polyGoFile
+
+            val _ = exec cmd
+
+            val _ = print (" - Interactive session finished.\n")
+        in
+            ()
+        end
 
 end
 
