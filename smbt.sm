@@ -1,0 +1,11 @@
+specpath readline.smackspec
+
+target mlton
+    sources
+    	src/smbt.mlb
+    end
+    
+    option compiler = mlton 
+    option output = bin/smbt
+end
+
