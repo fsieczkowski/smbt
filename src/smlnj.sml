@@ -23,24 +23,15 @@
 
 structure SMLNJCompiler :> COMPILER =
 struct
-    open ToolOpt
-
-    type t = unit
+    open CompilerUtil 
 
     val name = "SML/NJ"
 
-    val empty = ()
+    fun compile' (srcs,ffisrcs,lnkopts,cflags,hdr,opts) output = ()
 
-    fun addSources c l = c
-    fun addFFISources c l = c
-    fun addLinkOpts c l = c
-    fun addCFlags c s = c
-    fun setExportHeader c s = c
-    fun setOutput c s = c
-    fun setOption c (k,v) = c
-    fun generateFiles c = c
-    fun invoke c = ()
+    fun compile (c as (srcs,ffisrcs,lnkopts,cflags,hdr,opts)) =
+        case selectOpt opts "output" of
+                SOME output => compile' c output
+              | NONE => raise Fail ("Compiler invoked with no output.\n")
+
 end
-
-
-

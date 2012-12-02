@@ -75,7 +75,7 @@ struct
         e.g., /path/to
      **)
      fun resolvePath prefix file =
-        if ToolOpt.realFile file then
+        if CompilerUtil.realFile file then
             OS.Path.mkAbsolute {path=file, relativeTo = prefix}
         else file
 
@@ -147,7 +147,7 @@ struct
     (** Build a plan using an .sm file **)
     and parseFile fp tname =
 	let 
-        val path = ToolOpt.absolutePath fp
+        val path = CompilerUtil.absolutePath fp
         val prefix = OS.Path.dir path
 
         val (ss, targs) = Elaborate.elaborateSmb (Parser.parseFile fp)
@@ -164,25 +164,36 @@ struct
 
     fun execute (t : t) =
         let
-            val c = MLtonCompiler.addSources MLtonCompiler.empty (#srcs t)
-            val c' = case #ffi t of NONE => c | SOME (FFID f) =>
-                let
-                    val c' = MLtonCompiler.addFFISources c (#ffisrc f)
-                    val c'' = MLtonCompiler.addLinkOpts c' (#lnkopts f)
-                in
-                    case #cflags f of NONE => c'' | SOME f' => MLtonCompiler.addCFlags c'' f'
-                end
+            val compiler = CompilerUtil.selectCompiler (#opts t)
 
-            val c'' = List.foldl (fn (a,b) => MLtonCompiler.setOption b a) c' (#opts t)
+            val (ffisrcs,lnkopts,cflags,hdr) = 
+                (case #ffi t of NONE => ([],[],[],NONE) 
+                              | SOME (FFID f) =>
+                                 (#ffisrc f, 
+                                 #lnkopts f, 
+                                 case #cflags f of NONE => [] 
+                                                 | SOME f' => [f'],
+                                 #hdr f))
 
             val hasOutput = List.exists (fn ("output",v) => true | _ => false) (#opts t)
 
-            val ep = MLtonCompiler.generateFiles c''
-
-            val _ = if hasOutput then MLtonCompiler.invoke ep
-                        else print "[smbt] No output target, stopping prior to compilation.\n"
+            val compile =
+                case compiler of
+                    CompilerUtil.NullCompiler => ignore
+                  | CompilerUtil.MLton => MLtonCompiler.compile
+                  | CompilerUtil.SMLNJ => SMLNJCompiler.compile
+                  | CompilerUtil.PolyML => PolyMLCompiler.compile
+                  | CompilerUtil.MoscowML => MoscowMLCompiler.compile
+                  | _ => raise Fail "Compiler not yet supported."
         in
-            ()
+            if hasOutput then compile (
+                                #srcs t,
+                                ffisrcs,
+                                lnkopts,
+                                cflags,
+                                hdr,
+                                #opts t)
+                else print "[smbt] No output target, stopping prior to compilation.\n"
         end
 
     (** Execute the plan, and then go into a watch loop, re-invoking execute
@@ -192,7 +203,7 @@ struct
             val _ = execute t
             val _ = print ("[smbt] In continuous mode, use ctrl-c to exit.\n")
 	        val fs = case #ffi t of SOME (FFID f) => #ffisrc f | NONE => []
-            val fs' = List.filter ToolOpt.realFile (fs @ #srcs t)
+            val fs' = List.filter CompilerUtil.realFile (fs @ #srcs t)
             val _ = Watch.until fs'
             val _ = print ("[smbt] Modification detected, executing target...\n")
         in

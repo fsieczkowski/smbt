@@ -24,28 +24,37 @@
 (** Signature for interfaces to compilers. **)
 signature COMPILER =
 sig
-    (** The compiler interface's internal representation **)
-    type t
+    (** The compiler interface's representation of the plan. 
+        In order:
+          sources,
+          ffi sources,
+          ffi linkopts,
+          ffi cflags,
+          export header file,
+          options
+    **)
+    type compileTask = string list * string list * string list * string list * string option * (string * string) list
 
     val name : string
 
-    val empty : t
-
-    val addSources : t -> string list -> t
-    val addFFISources : t -> string list -> t
-    val addLinkOpts : t -> string list -> t
-    val addCFlags : t -> string -> t
-    val setExportHeader : t -> string -> t
-    val setOutput : t -> string -> t
-    val setOption : t -> (string * string) -> t
-
-    val generateFiles : t -> t
-    val invoke : t -> unit
+    (** Invoke a compiler. Non-opaque types (and tuples, no less!) so that we 
+       can share an interface between different compilers. **)
+    val compile : compileTask -> unit
 end
 
 (** Implements common functionality that may be shared easily across compilers and tools. **)
-structure ToolOpt =
+structure CompilerUtil =
 struct
+    datatype compiler =
+        NullCompiler
+      | MLton
+      | SMLNJ
+      | PolyML
+      | MoscowML
+      | MLKit
+
+    type compileTask = string list * string list * string list * string list * string option * (string * string) list
+
     fun exec s =
         let
             val _ = if (!Config.verbose) then
@@ -86,5 +95,19 @@ struct
 
     (** Determine if this is a real file or not. **)
     fun realFile s = not (String.isPrefix "$" s)
-end
+
+    fun selectOpt l k = 
+        Option.map (fn (k,v) => v) (List.find (fn (k',v) => k = k') l)
+
+    fun selectCompiler opts =
+        case selectOpt opts "compiler" of
+            NONE => NullCompiler
+          | SOME "mlton" => MLton
+          | SOME "smlnj" => SMLNJ
+          | SOME "polyml" => PolyML
+          | SOME "moscowml" => MoscowML
+          | SOME "mlkit" => MLKit
+          | SOME s => raise Fail ("Unknown compiler `" ^ s ^ "'.")
+
+ end
 
