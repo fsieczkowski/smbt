@@ -119,5 +119,7 @@ struct
             f ^ " (" ^ Position.toString s ^ " bytes)"
         end handle _ => f ^ " (inaccessible or missing - compilation failed)"
 
+    fun chDir f = OS.FileSys.chDir f
+
  end
 
