@@ -111,7 +111,8 @@ struct
   val option = TP.reserved "option" >> name << TP.reservedOp "=" && pqstring
   val prehooks = TP.reserved "pre" >> TP.reserved "hooks" >> repeat pqstring << TP.reserved "end"
   val posthooks = TP.reserved "post" >> TP.reserved "hooks" >> repeat pqstring << TP.reserved "end"
-  fun dec' () = option wth Opt <|> ffi wth FFI <|> sources wth Src <|> pkg wth Pkg <|> macro wth Macro <|> ($ target') wth Target
+  fun dec' () = option wth Opt <|> ffi wth FFI <|> sources wth Src <|> pkg wth Pkg <|> macro wth Macro
+            <|> ($ target') wth Target <|> prehooks wth PreHook <|> posthooks wth PostHook
   and target' () = TP.reserved "target" >> name && repeat ($ dec') << TP.reserved "end"
   val target = $target' wth Target
   val dec = $dec'
