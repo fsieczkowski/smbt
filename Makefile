@@ -1,4 +1,4 @@
-MLTON=bin/fastmlton
+MLTON=bin/mlton
 BIN=bin
 SOURCES=src/parser.sml \
 	src/main.sml \
