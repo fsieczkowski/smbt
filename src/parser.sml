@@ -98,6 +98,8 @@ struct
 
   val name = TP.identifier
   val version = TP.lexeme (char #"v" && repeat1 (digit <|> char #".") wth String.implode o op::)
+  fun newnot p = try ((p >> fail "") <|> succeed ())
+  val hook = newnot (TP.reserved "end") >> TP.lexeme (repeat1 (any suchthat (fn c => c <> #"\n")) wth String.implode)
   val nwsstr = TP.lexeme (repeat1 (satisfy (Char.isGraph)) wth String.implode)
     suchthat (fn x => Bool.not (List.exists (fn y => x = y) LexDef.reservedNames))
   val pqstring = TP.stringLiteral <|> nwsstr
@@ -109,8 +111,8 @@ struct
   val ffi = TP.reserved "ffi" >> repeat ffidec << TP.reserved "end"
   val sources = TP.reserved "sources" >> repeat pqstring << TP.reserved "end"
   val option = TP.reserved "option" >> name << TP.reservedOp "=" && pqstring
-  val prehooks = TP.reserved "pre" >> TP.reserved "hooks" >> repeat pqstring << TP.reserved "end"
-  val posthooks = TP.reserved "post" >> TP.reserved "hooks" >> repeat pqstring << TP.reserved "end"
+  val prehooks = TP.reserved "pre" >> TP.reserved "hooks" >> repeat hook << TP.reserved "end"
+  val posthooks = TP.reserved "post" >> TP.reserved "hooks" >> repeat hook << TP.reserved "end"
   fun dec' () = option wth Opt <|> ffi wth FFI <|> sources wth Src <|> pkg wth Pkg <|> macro wth Macro
             <|> ($ target') wth Target <|> prehooks wth PreHook <|> posthooks wth PostHook
   and target' () = TP.reserved "target" >> name && repeat ($ dec') << TP.reserved "end"

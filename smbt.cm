@@ -5,9 +5,17 @@ Group is
   $SMACKAGE/parcom/v1.0.4/parcom.cm
 
   (* smbt *)
+  src/config.sml
   src/parser.sml
   src/elaborate.sml
-  src/config.sml
   src/version.sml
   src/watch.sml
+  src/fsutil.sml
+  src/compiler.sml
+  src/smackage.sml
+  src/mlton.sml
+  src/smlnj.sml
+  src/polyml.sml
+  src/moscowml.sml
   src/plan.sml
+  src/main.sml

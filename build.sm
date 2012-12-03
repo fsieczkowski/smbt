@@ -29,7 +29,7 @@ target smlnj
     end
 
     pre hooks
-       "echo hello"
+       echo hello
     end
 
     option compiler = smlnj
