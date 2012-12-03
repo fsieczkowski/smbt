@@ -110,7 +110,7 @@ struct
                          | SOME f1' => case f2 of NONE => f1
                                                 | SOME f2' => SOME (composeFFI f1' f2')
         in {ffi = cmp (#ffi p) (#ffi p'), srcs = #srcs p @ #srcs p', opts = #opts p' @ #opts p,
-	    prehks = #prehks p @ #prehks p', posthks = #posthks p' @ #posthks p, prefix = #prefix p'} : t
+            prehks = #prehks p @ #prehks p', posthks = #posthks p' @ #posthks p, prefix = #prefix p'} : t
         end
 
     (** Select an appropriate part of an AST for a given target **)
@@ -119,7 +119,7 @@ struct
             val lplan = {ffi = Option.map (prefixFFIDec prefix) (#ffi dec), 
                          srcs = map (resolvePath prefix) (#src dec), 
                          opts = #opts dec, prehks = [(prefix, #prehks dec)],
-			 posthks = [(prefix, #posthks dec)], prefix = prefix}
+                         posthks = [(prefix, #posthks dec)], prefix = prefix}
         in 
             if target = tname then SOME (Slice (lplan, #deps dec, NONE))
             else Option.map (fn s => Slice (lplan, #deps dec, SOME s))
@@ -189,9 +189,13 @@ struct
 
             val hasOutput = List.exists (fn ("output",v) => true | _ => false) (#opts t)
 
-	    fun runHooks (dir, cmds) = (CompilerUtil.chDir dir; List.app CompilerUtil.exec cmds)
-	    fun runPhks () = (List.app runHooks (#prehks t); CompilerUtil.chDir (#prefix t))
-	    fun runQhks () = (List.app runHooks (#posthks t); CompilerUtil.chDir (#prefix t))
+            fun runHooks (dir, cmds) = (CompilerUtil.chDir dir; List.app CompilerUtil.exec cmds)
+            fun runPhks () = 
+                    (print " - Running pre-hooks\n";
+                     List.app runHooks (#prehks t); CompilerUtil.chDir (#prefix t))
+            fun runQhks () = 
+                    (print " - Running post-hooks\n";
+                     List.app runHooks (#posthks t); CompilerUtil.chDir (#prefix t))
 
             val compile =
                 case compiler of
@@ -212,7 +216,7 @@ struct
                   | _ => raise Fail "Compiler not yet supported."
         in
             runPhks ();
-	    if hasOutput andalso not (!Config.interactive) then 
+            if hasOutput andalso not (!Config.interactive) then 
                             compile (
                                 #srcs t,
                                 ffisrcs,
@@ -229,7 +233,7 @@ struct
                                 hdr,
                                 #opts t)
                 else print "[smbt] No output target, stopping prior to compilation.\n";
-	    runQhks ()
+            runQhks ()
         end
 
     (** Execute the plan, and then go into a watch loop, re-invoking execute
