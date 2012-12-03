@@ -43,7 +43,7 @@ struct
                             "ann\n" ^
                             "    \"allowFFI true\"\n" ^
                             "in\n" else "") ^
-                        String.concatWith "\n" (map absolutePath (List.rev srcs)) ^ "\n" ^
+                        String.concatWith "\n" (map absolutePath srcs) ^ "\n" ^
                         (if length ffisrcs > 0 then "end" else "") ^
                         "\n")
             val _ = TextIO.closeOut fp

@@ -51,10 +51,11 @@ structure Plan :> PLAN =
 struct
     open AST
 
-    type t = {ffi : ffidec option, srcs : string list, opts : (string * string) list}
+    type t = {ffi : ffidec option, srcs : string list, opts : (string * string) list,
+              prehks : (string * string list) list, posthks : (string * string list) list, prefix : string}
     datatype slice = Slice of t * pkgdec list * slice option
 
-    val empty = {ffi = NONE, srcs = [], opts = []}
+    val empty = {ffi = NONE, srcs = [], opts = [], prehks = [], posthks = [], prefix = "/"}
 
     (** This attempts to deal with the messiness of relative paths.
         For example, we have a .sm file that uses another .sm file, like so:
@@ -85,82 +86,85 @@ struct
     (** Compose the FFI blocks; the right-hand side block is preferred when
         header files are considered. **)
     fun composeFFI (FFID f1) (FFID f2) =
-	let fun compcf c1 c2 =
-		case c1 of NONE => c2
-			 | SOME cf1 =>
-			   case c2 of NONE => c1
-				    | SOME cf2 => SOME (composeCFlags cf1 cf2)
-	    fun comphdr c1 c2 = case c2 of NONE => c1
-					 | SOME _ => c2
-	in FFID {ffisrc = #ffisrc f1 @ #ffisrc f2, lnkopts = #lnkopts f1 @ #lnkopts f2,
-		 cflags = compcf (#cflags f1) (#cflags f2), hdr = comphdr (#hdr f1) (#hdr f2)}
-	end
+        let fun compcf c1 c2 =
+                case c1 of NONE => c2
+                         | SOME cf1 =>
+                           case c2 of NONE => c1
+                                    | SOME cf2 => SOME (composeCFlags cf1 cf2)
+            fun comphdr c1 c2 = case c2 of NONE => c1
+                                         | SOME _ => c2
+        in FFID {ffisrc = #ffisrc f1 @ #ffisrc f2, lnkopts = #lnkopts f1 @ #lnkopts f2,
+                 cflags = compcf (#cflags f1) (#cflags f2), hdr = comphdr (#hdr f1) (#hdr f2)}
+        end
 
     (** Compose two plans; the right-hand side plan has preference when it comes to
         options (hence, these options put in the front) 
-        
+
         XXX: Gian switched the order in which sources are composed,
         so that pkg def imports would end up *before* local sources.
         I think this is correct, but it might break other stuff.  Let's hope.
         **)
     fun compose (p : t) (p' : t) =
-	let fun cmp f1 f2 =
-		case f1 of NONE => f2
-			 | SOME f1' => case f2 of NONE => f1
-						| SOME f2' => SOME (composeFFI f1' f2')
-	in {ffi = cmp (#ffi p) (#ffi p'), srcs = #srcs p' @ #srcs p,
-	    opts = #opts p' @ #opts p} : t
-	end
+        let fun cmp f1 f2 =
+                case f1 of NONE => f2
+                         | SOME f1' => case f2 of NONE => f1
+                                                | SOME f2' => SOME (composeFFI f1' f2')
+        in {ffi = cmp (#ffi p) (#ffi p'), srcs = #srcs p @ #srcs p', opts = #opts p' @ #opts p,
+	    prehks = #prehks p @ #prehks p', posthks = #posthks p' @ #posthks p, prefix = #prefix p'} : t
+        end
 
     (** Select an appropriate part of an AST for a given target **)
     fun selectOne prefix target (tname, Dec dec) =
-	let 
-        val lplan = {ffi = Option.map (prefixFFIDec prefix) (#ffi dec), 
-                     srcs = map (resolvePath prefix) (#src dec), 
-                     opts = #opts dec}
-	in 
-        if target = tname then SOME (Slice (lplan, #deps dec, NONE))
-	        else Option.map (fn s => Slice (lplan, #deps dec, SOME s))
-			   (selectMany prefix target (#targets dec))
-	end
+        let
+            val lplan = {ffi = Option.map (prefixFFIDec prefix) (#ffi dec), 
+                         srcs = map (resolvePath prefix) (#src dec), 
+                         opts = #opts dec, prehks = [(prefix, #prehks dec)],
+			 posthks = [(prefix, #posthks dec)], prefix = prefix}
+        in 
+            if target = tname then SOME (Slice (lplan, #deps dec, NONE))
+            else Option.map (fn s => Slice (lplan, #deps dec, SOME s))
+                            (selectMany prefix target (#targets dec))
+        end
     and selectMany prefix target [] = NONE
       | selectMany prefix target (td :: ts) = case selectOne prefix target td of
-					   NONE => selectMany prefix target ts
-					 | SOME s => SOME s
+                                           NONE => selectMany prefix target ts
+                                         | SOME s => SOME s
 
     (** Handle the dependencies: generate the appropriate plan from the link & target **)
     fun handlePkg (SmackPKG (pkg, vsn, tn)) =
-	(* TODO: to implement this we'd need to expose an appropriate interface
-	   in Smackage *)
-	raise Fail "Smackage packages not supported (yet!)."
+        (* TODO: to implement this we'd need to expose an appropriate interface
+           in Smackage *)
+        raise Fail "Smackage packages not supported (yet!)."
       | handlePkg (LocalPKG (p, tn)) = parseFile p tn handle e => (print ("Package include for '" ^ p ^ "' failed.\n"); raise e)
 
     (** Transform the selected slice into a plan **)
     and foldSlice (Slice (p, deps, os)) =
-	let fun fd deps s = List.foldl (fn (pk, s) => compose (handlePkg pk) s) s deps
-	    fun aux (Slice (p, deps, NONE)) s = fd deps (compose p s)
-	      | aux (Slice (p, deps, SOME sl)) s = aux sl (fd deps (compose p s))
-	    val start = fd deps p
-	in case os of NONE => start | SOME sl => aux sl start
-	end
+        let fun fd deps s = List.foldl (fn (pk, s) => compose (handlePkg pk) s) s deps
+            fun aux (Slice (p, deps, NONE)) s = fd deps (compose p s)
+              | aux (Slice (p, deps, SOME sl)) s = aux sl (fd deps (compose p s))
+            val start = fd deps p
+        in case os of NONE => start | SOME sl => aux sl start
+        end
 
     (** Build a plan using an .sm file **)
     and parseFile fp tname =
-	let 
+        let 
         val path = CompilerUtil.absolutePath fp
         val prefix = OS.Path.dir path
 
         val (ss, targs) = Elaborate.elaborateSmb (Parser.parseFile fp)
-	    val sl = case selectMany prefix tname targs of
-			 SOME s => s
-		   | NONE => raise Fail ("Target " ^ tname ^ " not found!")
-	in foldSlice sl end
+            val sl = case selectMany prefix tname targs of
+                         SOME s => s
+                   | NONE => raise Fail ("Target " ^ tname ^ " not found!")
+        in foldSlice sl end
 
     fun toString (p : t) = 
         "Plan:\n" ^
         getOrNone "" (Option.map ffidecToString (#ffi p)) ^ "\n" ^
         "Sources: " ^ String.concatWith ", " (#srcs p) ^ "\n" ^
-        "Options:\n" ^ String.concatWith "\n" (map (fn (k,v) => k ^ " = " ^ v) (#opts p)) ^ "\n"
+        "Options:\n" ^ String.concatWith "\n" (map (fn (k,v) => k ^ " = " ^ v) (#opts p)) ^ "\n" ^
+        "Pre hooks:\n" ^ String.concatWith "\n" (map (fn (dir, cmds) => "cd " ^ dir ^ "\n" ^ String.concatWith "\n" cmds) (#prehks p)) ^ "\n" ^
+        "Post hooks:\n" ^ String.concatWith "\n" (map (fn (dir, cmds) => "cd " ^ dir ^ "\n" ^ String.concatWith "\n" cmds) (#posthks p)) ^ "\n"
 
     fun execute (t : t) =
         let
@@ -176,6 +180,10 @@ struct
                                  #hdr f))
 
             val hasOutput = List.exists (fn ("output",v) => true | _ => false) (#opts t)
+
+	    fun runHooks (dir, cmds) = (CompilerUtil.chDir dir; List.app CompilerUtil.exec cmds)
+	    fun runPhks () = (List.app runHooks (#prehks t); CompilerUtil.chDir (#prefix t))
+	    fun runQhks () = (List.app runHooks (#posthks t); CompilerUtil.chDir (#prefix t))
 
             val compile =
                 case compiler of
@@ -195,7 +203,8 @@ struct
                   | CompilerUtil.MoscowML => MoscowMLCompiler.interactive
                   | _ => raise Fail "Compiler not yet supported."
         in
-            if hasOutput andalso not (!Config.interactive) then 
+            runPhks ();
+	    if hasOutput andalso not (!Config.interactive) then 
                             compile (
                                 #srcs t,
                                 ffisrcs,
@@ -211,7 +220,8 @@ struct
                                 cflags,
                                 hdr,
                                 #opts t)
-                else print "[smbt] No output target, stopping prior to compilation.\n"
+                else print "[smbt] No output target, stopping prior to compilation.\n";
+	    runQhks ()
         end
 
     (** Execute the plan, and then go into a watch loop, re-invoking execute
@@ -220,7 +230,7 @@ struct
         let
             val _ = execute t
             val _ = print ("[smbt] In continuous mode, use ctrl-c to exit.\n")
-	        val fs = case #ffi t of SOME (FFID f) => #ffisrc f | NONE => []
+            val fs = case #ffi t of SOME (FFID f) => #ffisrc f | NONE => []
             val fs' = List.filter CompilerUtil.realFile (fs @ #srcs t)
             val _ = Watch.until fs'
             val _ = print ("[smbt] Modification detected, executing target...\n")

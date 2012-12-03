@@ -47,8 +47,9 @@ struct
   val opLetter        = fail "Multi-character operators not supported." : scanner
 
   (* reserved keywords and operators *)
-  val reservedNames   = ["smackspec", "specpath", "target", "option", "ffi", "smb",
-                         "sources", "pkg", "val", "lnkopt", "cflags", "header", "end"]
+  val reservedNames   = ["smackspec", "specpath", "target", "option", "ffi",
+                         "smb", "sources", "pkg", "val", "lnkopt", "cflags",
+                         "header", "pre", "post", "hooks", "end"]
   val reservedOpNames = ["="] : string list
 
   (* is the language case sensitive *)
@@ -63,6 +64,7 @@ struct
   datatype pkg  = SmackPKG of string * string * string option | LocalPKG of string * string
   datatype dec  = Opt of string * string | FFI of ffid list | Src of string list | Pkg of pkg
                 | Macro of string * string | Target of string * dec list
+                | PreHook of string list | PostHook of string list
   datatype spec = SLnk of string
 
 end
@@ -107,6 +109,8 @@ struct
   val ffi = TP.reserved "ffi" >> repeat ffidec << TP.reserved "end"
   val sources = TP.reserved "sources" >> repeat pqstring << TP.reserved "end"
   val option = TP.reserved "option" >> name << TP.reservedOp "=" && pqstring
+  val prehooks = TP.reserved "pre" >> TP.reserved "hooks" >> repeat pqstring << TP.reserved "end"
+  val posthooks = TP.reserved "post" >> TP.reserved "hooks" >> repeat pqstring << TP.reserved "end"
   fun dec' () = option wth Opt <|> ffi wth FFI <|> sources wth Src <|> pkg wth Pkg <|> macro wth Macro <|> ($ target') wth Target
   and target' () = TP.reserved "target" >> name && repeat ($ dec') << TP.reserved "end"
   val target = $target' wth Target

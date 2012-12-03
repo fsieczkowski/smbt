@@ -56,7 +56,7 @@ struct
 
             val fp = TextIO.openOut polyGoFile
             val _ = TextIO.output (fp,
-                        String.concatWith "\n" (map (fn f => "use \"" ^ absolutePath f ^ "\";") (List.rev srcs)) ^ "\n" ^
+                        String.concatWith "\n" (map (fn f => "use \"" ^ absolutePath f ^ "\";") srcs) ^ "\n" ^
                         "PolyML.export (\"" ^ objFile ^ "\", " ^ exportFn ^ ");\n"
                         )
             val _ = TextIO.closeOut fp
