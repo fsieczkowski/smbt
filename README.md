@@ -1,4 +1,6 @@
-Smbt is a Standard ML build tool.  The easiest way to obtain it is through [Smackage](http://github.com/standardml/smackage), using something like the following:
+Smbt is a Standard ML build tool.  
+
+The easiest way to obtain it is through [Smackage](http://github.com/standardml/smackage), using something like the following:
 
     smackage get smbt
     smackage make smbt
