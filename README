@@ -1,3 +1,0 @@
-# SMackage Build Tool (SMBT) -- a build tool for SML
-
-SMBT is a [Smackage](http://github.com/standardml/smackage)-based build tool for SML, aiming at doing "the right thing" and supporting the major SML compilers.
