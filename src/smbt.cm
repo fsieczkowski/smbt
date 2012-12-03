@@ -1,6 +1,4 @@
 Group is
-   $SMACKAGE/cmlib/v1/cmlib.cm
-   $SMACKAGE/parcom/v1/parcom.cm
    config.sml
    parser.sml
    elaborate.sml

@@ -1,14 +1,18 @@
-specpath foo
-
 target parcom
   sources
-  	src/parse.sig
-  	src/parse.sml
-  	src/charparse.sig
-  	src/charparse.sml
-  	src/tokparse.sig
-  	src/tokparse.sml
-  	src/langparse.sml
+  		src/parse.sig
+  		src/parse.sml
+  		src/charparse.sig
+  		src/charparse.sml
+  		src/tokparse.sig
+  		src/tokparse.sml
+  		src/langparse.sml
+  end
+
+  target smlnj
+  	pkg cmlib v1
   end
 end
+
+
 

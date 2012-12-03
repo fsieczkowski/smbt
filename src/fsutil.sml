@@ -77,7 +77,7 @@ struct
    let 
       val tmpName = OS.FileSys.tmpName ()
       val cmd' = (cmd ^ " > " ^ tmpName)
-      (* val () = print ("Running: `" ^ cmd' ^ "`\n") *)
+      val () = if (!Config.verbose) then print ("Running: `" ^ cmd' ^ "`\n") else ()
       val () = 
          if OS.Process.isSuccess (OS.Process.system cmd')
          then () else raise Fail ("System call failed: `" ^ cmd' ^ "'")

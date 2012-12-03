@@ -11,8 +11,23 @@ target mlton
 end
 
 target smlnj
+    pkg parcom v1
+    
     sources
-        src/smbt.cm
+       src/config.sml
+       src/parser.sml
+       src/elaborate.sml
+       src/version.sml
+       src/watch.sml
+       src/fsutil.sml
+       src/compiler.sml
+       src/smackage.sml
+       src/mlton.sml
+       src/smlnj.sml
+       src/polyml.sml
+       src/moscowml.sml
+       src/plan.sml
+       src/main.sml
     end
 
     pre hooks
@@ -28,8 +43,8 @@ target smlnj
 end
 
 target polyml
-    smb /Users/gdpe/.smackage/lib/parcom/v1/parcom.sm parcom 
-    smb /Users/gdpe/.smackage/lib/cmlib/v1/cmlib.sm cmlib
+    pkg parcom v1 parcom
+    pkg cmlib v1 cmlib
 
     sources
        src/config.sml
