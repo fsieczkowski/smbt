@@ -7,7 +7,9 @@ parser.sml
 elaborate.sml
 version.sml
 watch.sml
+fsutil.sml
 compiler.sml
+smackage.sml
 mlton.sml
 smlnj.sml
 polyml.sml

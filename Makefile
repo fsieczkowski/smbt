@@ -1,4 +1,4 @@
-MLTON=mlton
+MLTON=bin/fastmlton
 BIN=bin
 SOURCES=src/parser.sml \
 	src/main.sml \
@@ -11,6 +11,8 @@ SOURCES=src/parser.sml \
 	src/polyml.sml \
 	src/moscowml.sml \
 	src/compiler.sml \
+	src/fsutil.sml \
+	src/smackage.sml \
 	src/config.sml
 
 all: mlton
@@ -18,7 +20,7 @@ all: mlton
 mlton: $(BIN)/smbt
 
 $(BIN)/smbt: src/smbt.mlb $(SOURCES)
-	$(MLTON) -const 'Exn.keepHistory true' -output $(BIN)/smbt src/smbt.mlb
+	$(MLTON) -output $(BIN)/smbt src/smbt.mlb
 
 clean:
 	rm -f $(BIN)/smbt

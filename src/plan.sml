@@ -132,9 +132,17 @@ struct
 
     (** Handle the dependencies: generate the appropriate plan from the link & target **)
     fun handlePkg (SmackPKG (pkg, vsn, tn)) =
-        (* TODO: to implement this we'd need to expose an appropriate interface
-           in Smackage *)
-        raise Fail "Smackage packages not supported (yet!)."
+        let
+            val _ = print ("[WARNING] Experimental Smackage mode engaged. This way be dragons...\n")
+            val path = case SmackageUtil.pathinfo (pkg,vsn) of
+                            [p] => p
+                          | _ => raise Fail ("Could not obtain path for `" ^ pkg ^ "' from smackage")
+        
+            val path' = resolvePath path "build.sm"
+            (** TODO: We should put some effort into actually invoking smackage 'get' here. **)
+        in
+            parseFile path' tn handle e => (print ("Package include for '" ^ pkg ^ "' failed.\n"); raise e)
+        end
       | handlePkg (LocalPKG (p, tn)) = parseFile p tn handle e => (print ("Package include for '" ^ p ^ "' failed.\n"); raise e)
 
     (** Transform the selected slice into a plan **)

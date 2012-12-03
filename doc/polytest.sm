@@ -1,6 +1,10 @@
 specpath foo
 
 target polyml
+	pre hooks
+        "echo hello"
+    end
+
     sources
         test.sml
     end

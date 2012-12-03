@@ -15,6 +15,10 @@ target smlnj
         src/smbt.cm
     end
 
+    pre hooks
+       "echo hello"
+    end
+
     option compiler = smlnj
     option exportFn = Smbt.main
     option heapImg = bin/.heapimg
@@ -33,7 +37,9 @@ target polyml
        src/elaborate.sml
        src/version.sml
        src/watch.sml
+       src/fsutil.sml
        src/compiler.sml
+       src/smackage.sml
        src/mlton.sml
        src/smlnj.sml
        src/polyml.sml
