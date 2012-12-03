@@ -1,5 +1,3 @@
-specpath readline.smackspec
-
 target mlton
     sources
     	src/smbt.mlb
