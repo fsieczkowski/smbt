@@ -22,6 +22,12 @@ mlton: $(BIN)/smbt
 $(BIN)/smbt: src/smbt.mlb $(SOURCES)
 	$(MLTON) -output $(BIN)/smbt src/smbt.mlb
 
+install: $(BIN)/smbt
+	@if [ ! -n "$(DESTDIR)" ]; then echo "Error: DESTDIR is not set."; false; fi
+	rm -f $(DESTDIR)/bin/smbt
+	mkdir -p $(DESTDIR)/bin
+	cp $(BIN)/smbt $(DESTDIR)/bin/smbt
+
 clean:
 	rm -f $(BIN)/smbt
 
