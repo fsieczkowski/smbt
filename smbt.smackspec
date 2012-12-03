@@ -1,0 +1,9 @@
+provides: smbt 0.2.1
+requires: smackage v1.2
+requires: parcom v1.0.4
+description: Smbt, an SML build tool
+maintainer: Filip Sieczkowski <fisi@itu.dk>
+maintainer: Gian Perrone <gdpe at itu dot dk>
+keywords: build, mlton, smlnj, compiler, ffi
+bug-url: https://github.com/finrod/smbt/issues
+
