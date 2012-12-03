@@ -75,10 +75,10 @@ sig
     exception ParseError of string
 
     (** Parse the contents of a file as an Smbt specification **)
-    val parseFile : string -> Pre_AST.spec * Pre_AST.dec list
+    val parseFile : string -> Pre_AST.spec option * Pre_AST.dec list
 
     (** Parse a string as an Smbt specification **)
-    val parseStr  : string -> Pre_AST.spec * Pre_AST.dec list
+    val parseStr  : string -> Pre_AST.spec option * Pre_AST.dec list
 
 end =
 struct
@@ -117,7 +117,7 @@ struct
   val target = $target' wth Target
   val dec = $dec'
   val sms = TP.reserved "specpath" >> pqstring wth SLnk (* TODO: fill in parser for internal smackspecs *)
-  val smb = sms && repeat target
+  val smb = opt sms && repeat target
 
   fun parse p s = sum (fn s => raise ParseError s) (fn x => x) (parseString (p << eos) s)
   fun parseStr s = parse smb s

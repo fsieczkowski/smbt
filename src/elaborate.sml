@@ -74,8 +74,8 @@ sig
 
     exception ElabError of string
 
-    val elaborateSmb : Pre_AST.spec * Pre_AST.dec list ->
-                       Pre_AST.spec * (string * AST.dec) list
+    val elaborateSmb : Pre_AST.spec option * Pre_AST.dec list ->
+                       Pre_AST.spec option * (string * AST.dec) list
 
 end
 
