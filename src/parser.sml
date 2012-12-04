@@ -126,13 +126,13 @@ struct
   val sms = TP.reserved "specpath" >> pqstring wth SLnk (* TODO: fill in parser for internal smackspecs *)
   val smb = opt sms && repeat target
 
-  fun parse p s = sum (fn s => raise ParseError s) (fn x => x) (parseString (p << eos) s)
+  fun parse p s = sum (fn s => raise ParseError s) (fn x => x) (parseString (TP.whiteSpace >> p << eos) s)
   fun parseStr s = parse smb s
   fun parseFile fileName =
       let fun isEol s = (case Stream.front s of Stream.Cons (#"\n", _) => true | _ => false)
           val is = Stream.fromTextInstream (TextIO.openIn fileName)
           val cs = CoordinatedStream.coordinate isEol (Coord.init fileName) is
-      in sum (fn s => raise ParseError s) (fn x => x) (CharParser.parseChars (smb << eos) cs)
+      in sum (fn s => raise ParseError s) (fn x => x) (CharParser.parseChars (TP.whiteSpace >> smb << eos) cs)
       end
 
 end
