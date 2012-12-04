@@ -43,6 +43,8 @@ sig
     (** Parse a file and select a specific target to build a plan. **)
     val parseFile : string -> string -> t
 
+    exception DepError of string
+
 end
 
 (** The structure for target plans, which represent everything needed
@@ -99,11 +101,7 @@ struct
 
     (** Compose two plans; the right-hand side plan has preference when it comes to
         options (hence, these options put in the front) 
-
-        XXX: Gian switched the order in which sources are composed,
-        so that pkg def imports would end up *before* local sources.
-        I think this is correct, but it might break other stuff.  Let's hope.
-        **)
+     **)
     fun compose (p : t) (p' : t) =
         let fun cmp f1 f2 =
                 case f1 of NONE => f2
@@ -130,24 +128,38 @@ struct
                                            NONE => selectMany prefix target ts
                                          | SOME s => SOME s
 
+    exception DepError of string
+
+    val selectedPkgs = ref [] : (string * string * string * string) list ref
+
+    fun chckPkg pkg vsn tn src =
+	case List.find (fn d => #1 d = pkg) (!selectedPkgs)
+	 of SOME (_, vsn', tn', src') =>
+	    if vsn = vsn' andalso tn = tn' then false
+	    else raise DepError ("Package " ^ pkg ^ " required at version " ^ vsn ^ " and target " ^ tn ^ " at file " ^
+				 src ^ " while at version " ^ vsn' ^ " and target " ^ tn' ^ " at file " ^ src' ^ ".")
+	  | NONE => true before selectedPkgs := (pkg, vsn, tn, src) :: !selectedPkgs
+
     (** Handle the dependencies: generate the appropriate plan from the link & target **)
-    fun handlePkg (SmackPKG (pkg, vsn, tn)) =
+    fun handlePkg filename (SmackPKG (pkg, vsn, tn)) =
         let
             val _ = print ("[WARNING] Experimental Smackage mode engaged. This way be dragons...\n")
             val path = case SmackageUtil.pathinfo (pkg,vsn) of
                             [p] => p
                           | _ => raise Fail ("Could not obtain path for `" ^ pkg ^ "' from smackage")
-        
+            val inst = chckPkg pkg vsn tn filename
             val path' = resolvePath path "build.sm"
             (** TODO: We should put some effort into actually invoking smackage 'get' here. **)
         in
-            parseFile path' tn handle e => (print ("Package include for '" ^ pkg ^ "' failed.\n"); raise e)
+            (if inst then planFile path' tn else empty)
+	    handle e => (print ("Package include for `" ^ pkg ^ "' failed.\n"); raise e)
         end
-      | handlePkg (LocalPKG (p, tn)) = parseFile p tn handle e => (print ("Package include for '" ^ p ^ "' failed.\n"); raise e)
+      | handlePkg src (LocalPKG (p, tn)) = planFile p tn
+	handle e => (print ("Package include for `" ^ p ^ "' (called from \"" ^ src ^ "\") failed.\n"); raise e)
 
     (** Transform the selected slice into a plan **)
-    and foldSlice (Slice (p, deps, os)) =
-        let fun fd deps s = List.foldl (fn (pk, s) => compose (handlePkg pk) s) s deps
+    and foldSlice src (Slice (p, deps, os)) =
+        let fun fd deps s = List.foldl (fn (pk, s) => compose (handlePkg src pk) s) s deps
             fun aux (Slice (p, deps, NONE)) s = fd deps (compose p s)
               | aux (Slice (p, deps, SOME sl)) s = aux sl (fd deps (compose p s))
             val start = fd deps p
@@ -155,7 +167,7 @@ struct
         end
 
     (** Build a plan using an .sm file **)
-    and parseFile fp tname =
+    and planFile fp tname =
         let 
         val path = CompilerUtil.absolutePath fp
         val prefix = OS.Path.dir path
@@ -164,7 +176,9 @@ struct
             val sl = case selectMany prefix tname targs of
                          SOME s => s
                    | NONE => raise Fail ("Target " ^ tname ^ " not found!")
-        in foldSlice sl end
+        in foldSlice fp sl end
+
+    fun parseFile fp tname = (selectedPkgs := []; planFile fp tname)
 
     fun toString (p : t) = 
         "Plan:\n" ^

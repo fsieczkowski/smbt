@@ -9,7 +9,8 @@ target mlton
 end
 
 target smlnj
-    pkg parcom v1
+    pkg cmlib v1 source 
+    pkg parcom v1 parcom
     
     sources
        src/config.sml
