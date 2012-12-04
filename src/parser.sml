@@ -36,7 +36,7 @@ struct
   val commentLine     = NONE
 
   (* do the multiline comments support nesting *)
-  val nestedComments  = true
+  val nestedComments  = false
 
   (* parsers for first and subsequent letters of identifiers *)
   val identStart      = letter
@@ -60,11 +60,14 @@ end
 structure Pre_AST =
 struct
 
-  datatype ffid = FFIFile of string | FFILnk of string | FFIFlgs of string | FFIHdr of string
-  datatype pkg  = SmackPKG of string * string * string option | LocalPKG of string * string
-  datatype dec  = Opt of string * string | FFI of ffid list | Src of string list | Pkg of pkg
-                | Macro of string * string | Target of string * dec list
-                | PreHook of string list | PostHook of string list
+  datatype 'a ffid = FFIFile of string * 'a | FFILnk of string * 'a
+		   | FFIFlgs of string * 'a | FFIHdr of string * 'a
+  datatype 'a pkg  = SmackPKG of string * string * string option * 'a
+		   | LocalPKG of string * string * 'a
+  datatype 'a dec  = Opt of string * string * 'a | FFI of 'a ffid list * 'a
+		   | Src of string list * 'a | Pkg of 'a pkg * 'a
+                   | Macro of string * string * 'a | Target of string * 'a dec list * 'a
+                   | PreHook of string list * 'a | PostHook of string list * 'a
   datatype spec = SLnk of string
 
 end
@@ -75,10 +78,10 @@ sig
     exception ParseError of string
 
     (** Parse the contents of a file as an Smbt specification **)
-    val parseFile : string -> Pre_AST.spec option * Pre_AST.dec list
+    val parseFile : string -> Pre_AST.spec option * Pos.t Pre_AST.dec list
 
     (** Parse a string as an Smbt specification **)
-    val parseStr  : string -> Pre_AST.spec option * Pre_AST.dec list
+    val parseStr  : string -> Pre_AST.spec option * Pos.t Pre_AST.dec list
 
 end =
 struct
@@ -96,26 +99,28 @@ struct
 
   exception ParseError of string
 
+  fun flat3' ((a, b), c) = (a, b, c)
+  fun flat4' ((a, b, c), d) = (a, b, c, d)
+
   val name = TP.identifier
   val version = TP.lexeme (char #"v" && repeat1 (digit <|> char #".") wth String.implode o op::)
-  fun newnot p = try ((p >> fail "") <|> succeed ())
-  val hook = newnot (TP.reserved "end") >> TP.lexeme (repeat1 (any suchthat (fn c => c <> #"\n")) wth String.implode)
+  val hook = not (TP.reserved "end") >> TP.lexeme (repeat1 (any suchthat (fn c => c <> #"\n")) wth String.implode)
   val nwsstr = TP.lexeme (repeat1 (satisfy (Char.isGraph)) wth String.implode)
     suchthat (fn x => Bool.not (List.exists (fn y => x = y) LexDef.reservedNames))
   val pqstring = TP.stringLiteral <|> nwsstr
-  val macro = TP.reserved "val" >> name << TP.reservedOp "=" && pqstring
-  val pkg = TP.reserved "pkg" >> pqstring && version && opt pqstring wth SmackPKG o flat3
-        <|> TP.reserved "smb" >> pqstring && pqstring wth LocalPKG
-  val ffidec = TP.reserved "lnkopt" >> pqstring wth FFILnk <|> TP.reserved "cflags" >> pqstring wth FFIFlgs
-           <|> TP.reserved "header" >> pqstring wth FFIHdr <|> pqstring wth FFIFile
+  val macro = !!(TP.reserved "val" >> name << TP.reservedOp "=" && pqstring) wth flat3'
+  val pkg = !! (TP.reserved "pkg" >> pqstring && version && opt pqstring wth flat3) wth SmackPKG o flat4'
+        <|> !! (TP.reserved "smb" >> pqstring && pqstring) wth LocalPKG o flat3'
+  val ffidec = !! (TP.reserved "lnkopt" >> pqstring) wth FFILnk <|> !! (TP.reserved "cflags" >> pqstring) wth FFIFlgs
+           <|> !! (TP.reserved "header" >> pqstring) wth FFIHdr <|> !! pqstring wth FFIFile
   val ffi = TP.reserved "ffi" >> repeat ffidec << TP.reserved "end"
   val sources = TP.reserved "sources" >> repeat pqstring << TP.reserved "end"
-  val option = TP.reserved "option" >> name << TP.reservedOp "=" && pqstring
+  val option = !! (TP.reserved "option" >> name << TP.reservedOp "=" && pqstring) wth flat3'
   val prehooks = TP.reserved "pre" >> TP.reserved "hooks" >> repeat hook << TP.reserved "end"
   val posthooks = TP.reserved "post" >> TP.reserved "hooks" >> repeat hook << TP.reserved "end"
-  fun dec' () = option wth Opt <|> ffi wth FFI <|> sources wth Src <|> pkg wth Pkg <|> macro wth Macro
-            <|> ($ target') wth Target <|> prehooks wth PreHook <|> posthooks wth PostHook
-  and target' () = TP.reserved "target" >> name && repeat ($ dec') << TP.reserved "end"
+  fun dec' () = option wth Opt <|> !! ffi wth FFI <|> !! sources wth Src <|> !! pkg wth Pkg <|> macro wth Macro
+            <|> ($ target') wth Target <|> !! prehooks wth PreHook <|> !! posthooks wth PostHook
+  and target' () = !! (TP.reserved "target" >> name && repeat ($ dec') << TP.reserved "end") wth flat3'
   val target = $target' wth Target
   val dec = $dec'
   val sms = TP.reserved "specpath" >> pqstring wth SLnk (* TODO: fill in parser for internal smackspecs *)

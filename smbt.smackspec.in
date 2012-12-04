@@ -1,6 +1,6 @@
 provides: smbt ###VERSION###
 requires: smackage v1.2
-requires: parcom v1.0.4
+requires: parcom v1.0.6
 description: Smbt, an SML build tool
 maintainer: Filip Sieczkowski <fisi@itu.dk>
 maintainer: Gian Perrone <gdpe at itu dot dk>

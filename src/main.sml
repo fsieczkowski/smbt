@@ -53,6 +53,7 @@ struct
             else
                 Plan.execute target (* Execute immediately, then exit. *)
         end handle (Parser.ParseError s) => print ("Parse error: " ^ s ^ "\n")
+		 | (Elaborate.ElabError s) => print ("Elaboration error: " ^ s ^ "\n")
 
     fun main (name,args) =
         let

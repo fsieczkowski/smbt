@@ -74,7 +74,7 @@ sig
 
     exception ElabError of string
 
-    val elaborateSmb : Pre_AST.spec option * Pre_AST.dec list ->
+    val elaborateSmb : Pre_AST.spec option * Pos.t Pre_AST.dec list ->
                        Pre_AST.spec option * (string * AST.dec) list
 
 end
@@ -108,22 +108,22 @@ struct
   fun expandMacros ds =
       let fun subst env str = List.foldl (fn ((f, t), str) => replaceAll f t str) str env
           fun expFFI env f =
-              case f of FFIFile s => FFIFile (subst env s)
-                      | FFILnk  s => FFILnk  (subst env s)
-                      | FFIHdr  s => FFIHdr  (subst env s)
-                      | FFIFlgs s => FFIFlgs (subst env s)
+              case f of FFIFile (s, pos) => FFIFile (subst env s, pos)
+                      | FFILnk  (s, pos) => FFILnk  (subst env s, pos)
+                      | FFIHdr  (s, pos) => FFIHdr  (subst env s, pos)
+                      | FFIFlgs (s, pos) => FFIFlgs (subst env s, pos)
           fun expDec env d =
-              case d of Opt (k, v) => INL (Opt (k, subst env v))
-                      | FFI fs => INL (FFI (List.map (expFFI env) fs))
-                      | Src ss => INL (Src (List.map (subst env) ss))
-                      | Pkg (SmackPKG (name, version, target)) =>
-                          INL (Pkg (SmackPKG (subst env name, version, Option.map (subst env) target)))
-                      | Pkg (LocalPKG (name, target)) =>
-                          INL (Pkg (LocalPKG (subst env name, subst env target)))
-                      | Macro (k, v) => INR ((k,v) :: env)
-                      | Target (name, decs) => INL (Target (name, expDecs env decs))
-		      | PreHook hs => INL (PreHook (List.map (subst env) hs))
-		      | PostHook hs => INL (PostHook (List.map (subst env) hs))
+              case d of Opt (k, v, pos) => INL (Opt (k, subst env v, pos))
+                      | FFI (fs, pos) => INL (FFI (List.map (expFFI env) fs, pos))
+                      | Src (ss, pos) => INL (Src (List.map (subst env) ss, pos))
+                      | Pkg (SmackPKG (name, version, target, pos), pos') =>
+                          INL (Pkg (SmackPKG (subst env name, version, Option.map (subst env) target, pos), pos'))
+                      | Pkg (LocalPKG (name, target, pos), pos') =>
+                          INL (Pkg (LocalPKG (subst env name, subst env target, pos), pos'))
+                      | Macro (k, v, pos) => INR ((k,v) :: env)
+                      | Target (name, decs, pos) => INL (Target (name, expDecs env decs, pos))
+		      | PreHook (hs, pos) => INL (PreHook (List.map (subst env) hs, pos))
+		      | PostHook (hs, pos) => INL (PostHook (List.map (subst env) hs, pos))
           and expDecs env [] = []
             | expDecs env (d :: ds) =
               case expDec env d of INL d'   => d' :: expDecs env ds
@@ -139,16 +139,18 @@ struct
           val cfl = ref (NONE : string option)
           val hdr = ref (NONE : string option)
           local open Pre_AST
-          in fun elab (FFIFile s) = src := s :: !src
-               | elab (FFILnk  l) = lnk := l :: !lnk
-               | elab (FFIFlgs f) =
+          in fun elab (FFIFile (s, pos)) = src := s :: !src
+               | elab (FFILnk  (l, pos)) = lnk := l :: !lnk
+               | elab (FFIFlgs (f, pos)) =
                  (case !cfl of NONE => cfl := SOME f
                              | SOME f' => raise ElabError
-                                 ("Duplicate cflags entry in FFI block: \"" ^ f ^ "\" and \"" ^ f' ^"\"."))
-               | elab (FFIHdr  h) =
+                                 ("Duplicate cflags entry in FFI block at " ^ Pos.toString pos ^
+				  ": \"" ^ f ^ "\" and \"" ^ f' ^"\"."))
+               | elab (FFIHdr  (h, pos)) =
                  (case !hdr of NONE => hdr := SOME h
                              | SOME h' => raise ElabError
-                                 ("Duplicate header entry in FFI block: \"" ^ h ^ "\" and \"" ^ h' ^"\"."))
+                                 ("Duplicate header entry in FFI block at " ^ Pos.toString pos ^
+				  ": \"" ^ h ^ "\" and \"" ^ h' ^"\"."))
           end
       in List.map elab fs; FFID {cflags = !cfl, ffisrc = rev (!src), hdr = !hdr, lnkopts = rev (!lnk)}
       end
@@ -161,27 +163,28 @@ struct
         fun defED () = {ffib = ref NONE, srcs = ref NONE, pkgs = ref [], opts = ref [], tars = ref [],
                         preh = ref NONE, posth = ref NONE} : edec
         open Pre_AST
-	fun setNonDup f v errstr =
+	fun setNonDup f v errstr pos =
 	    case !f of NONE => f := SOME v
-		     | SOME _ => raise ElabError ("Duplicate " ^ errstr ^ " blocks located.")
+		     | SOME _ => raise ElabError ("Duplicate " ^ errstr ^ " blocks located at " ^ Pos.toString pos ^ ".")
   in
-  fun elabDec ed tn (Opt (k,v)) = let val opts = #opts ed in opts := (k,v) :: !opts end
-    | elabDec ed tn (FFI fs) = setNonDup (#ffib ed) (elabFFI fs) "ffi"
-    | elabDec ed tn (Src ss) = setNonDup (#srcs ed) ss "sources"
-    | elabDec ed tn (Pkg (SmackPKG (n, v, ot))) =
+  fun elabDec ed tn (Opt (k, v, pos)) = let val opts = #opts ed in opts := (k, v) :: !opts end
+    | elabDec ed tn (FFI (fs, pos)) = setNonDup (#ffib ed) (elabFFI fs) "ffi" pos
+    | elabDec ed tn (Src (ss, pos)) = setNonDup (#srcs ed) ss "sources" pos
+    | elabDec ed tn (Pkg (SmackPKG (n, v, ot, pos), pos')) =
       (* TODO: sanitize version number *)
       let val pkgs = #pkgs ed
       in pkgs := AST.SmackPKG (n, v, getOpt (ot, tn)) :: !pkgs end
-    | elabDec ed tn (Pkg (LocalPKG (n, t))) = let val pkgs = #pkgs ed in pkgs := AST.LocalPKG (n, t) :: !pkgs end
-    | elabDec ed _  (Target (tn, ds)) =
+    | elabDec ed tn (Pkg (LocalPKG (n, t, pos), pos')) =
+      let val pkgs = #pkgs ed in pkgs := AST.LocalPKG (n, t) :: !pkgs end
+    | elabDec ed _  (Target (tn, ds, pos)) =
       let val tars = #tars ed
           val _ = if List.exists (fn x => x = tn) (!targets)
-                  then raise ElabError ("Duplicate target names " ^ tn)
+                  then raise ElabError ("Duplicate target names " ^ tn ^ " at " ^ Pos.toString pos ^ ".")
                   else targets := tn :: !targets
       in tars := (tn, elabDecs ds tn) :: !tars end
     | elabDec ed tn (Macro _) = raise ElabError "Unexpanded macro located."
-    | elabDec ed tn (PreHook hs) = setNonDup (#preh ed) hs "pre-hooks"
-    | elabDec ed tn (PostHook hs) = setNonDup (#posth ed) hs "post-hooks"
+    | elabDec ed tn (PreHook (hs, pos)) = setNonDup (#preh ed) hs "pre-hooks" pos
+    | elabDec ed tn (PostHook (hs, pos)) = setNonDup (#posth ed) hs "post-hooks" pos
   and elabDecs ds tn =
     let val ed = defED ()
     in List.map (elabDec ed tn) ds;
@@ -192,7 +195,7 @@ struct
   end
 
   fun elabSmb (ss, ts) =
-      let fun matchT (Pre_AST.Target (tn, ds)) = (tn, elabDecs ds tn)
+      let fun matchT (Pre_AST.Target (tn, ds, pos)) = (tn, elabDecs ds tn)
             | matchT _ = raise ElabError "Non-target found at the top level."
           val _ = targets := []
       in  (ss, List.map matchT ts)
