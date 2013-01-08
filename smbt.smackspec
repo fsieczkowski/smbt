@@ -1,4 +1,4 @@
-provides: smbt 0.2.8
+provides: smbt 0.3.0
 requires: smackage v1.2
 requires: parcom v1.0.6
 description: Smbt, an SML build tool
