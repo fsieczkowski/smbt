@@ -127,7 +127,7 @@ The readline library might have a build.sm file like this:
 
 A client application would use this without needing to know anything about the FFI, like this:
 
-   target foobar
+    target foobar
        pkg readline v1 mlton
 
        sources
