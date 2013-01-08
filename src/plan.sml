@@ -133,12 +133,12 @@ struct
     val selectedPkgs = ref [] : (string * string * string * string) list ref
 
     fun chckPkg pkg vsn tn src =
-	case List.find (fn d => #1 d = pkg) (!selectedPkgs)
-	 of SOME (_, vsn', tn', src') =>
-	    if vsn = vsn' andalso tn = tn' then false
-	    else raise DepError ("Package " ^ pkg ^ " required at version " ^ vsn ^ " and target " ^ tn ^ " at file " ^
-				 src ^ " while at version " ^ vsn' ^ " and target " ^ tn' ^ " at file " ^ src' ^ ".")
-	  | NONE => true before selectedPkgs := (pkg, vsn, tn, src) :: !selectedPkgs
+        case List.find (fn d => #1 d = pkg) (!selectedPkgs)
+         of SOME (_, vsn', tn', src') =>
+            if vsn = vsn' andalso tn = tn' then false
+            else raise DepError ("Package " ^ pkg ^ " required at version " ^ vsn ^ " and target " ^ tn ^ " at file " ^
+                                 src ^ " while at version " ^ vsn' ^ " and target " ^ tn' ^ " at file " ^ src' ^ ".")
+          | NONE => true before selectedPkgs := (pkg, vsn, tn, src) :: !selectedPkgs
 
     (** Handle the dependencies: generate the appropriate plan from the link & target **)
     fun handlePkg filename (SmackPKG (pkg, vsn, tn)) =
@@ -152,18 +152,17 @@ struct
             (** TODO: We should put some effort into actually invoking smackage 'get' here. **)
         in
             (if inst then planFile path' tn else empty)
-	    handle e => (print ("Package include for `" ^ pkg ^ "' failed.\n"); raise e)
+            handle e => (print ("Package include for `" ^ pkg ^ "' failed.\n"); raise e)
         end
       | handlePkg src (LocalPKG (p, tn)) = planFile p tn
-	handle e => (print ("Package include for `" ^ p ^ "' (called from \"" ^ src ^ "\") failed.\n"); raise e)
+        handle e => (print ("Package include for `" ^ p ^ "' (called from \"" ^ src ^ "\") failed.\n"); raise e)
 
     (** Transform the selected slice into a plan **)
-    and foldSlice src (Slice (p, deps, os)) =
-        let fun fd deps s = List.foldl (fn (pk, s) => compose (handlePkg src pk) s) s deps
-            fun aux (Slice (p, deps, NONE)) s = fd deps (compose p s)
-              | aux (Slice (p, deps, SOME sl)) s = aux sl (fd deps (compose p s))
-            val start = fd deps p
-        in case os of NONE => start | SOME sl => aux sl start
+    and foldSlice src s =
+        let fun fd (p, deps) = List.foldl (fn (pk, pln) => compose (handlePkg src pk) pln) p (rev deps)
+            fun aux (Slice (p, deps, NONE)) = (p, deps)
+              | aux (Slice (p, deps, SOME sl)) = case aux sl of (p', deps') => (compose p p', deps @ deps')
+        in fd (aux s)
         end
 
     (** Build a plan using an .sm file **)
@@ -175,7 +174,7 @@ struct
         val (ss, targs) = Elaborate.elaborateSmb (Parser.parseFile fp)
             val sl = case selectMany prefix tname targs of
                          SOME s => s
-                   | NONE => raise Fail ("Target " ^ tname ^ " not found!")
+                       | NONE => raise Fail ("Target " ^ tname ^ " not found!")
         in foldSlice fp sl end
 
     fun parseFile fp tname = (selectedPkgs := []; planFile fp tname)
