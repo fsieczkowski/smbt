@@ -14,6 +14,7 @@ mlton.sml
 smlnj.sml
 polyml.sml
 moscowml.sml
+smlsharp.sml
 plan.sml
 main.sml
 go.sml
