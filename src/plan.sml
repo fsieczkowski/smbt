@@ -217,6 +217,7 @@ struct
                   | CompilerUtil.SMLNJ => SMLNJCompiler.compile
                   | CompilerUtil.PolyML => PolyMLCompiler.compile
                   | CompilerUtil.MoscowML => MoscowMLCompiler.compile
+                  | CompilerUtil.SMLSharp => SMLSharpCompiler.compile
                   | _ => raise Fail "Compiler not yet supported."
 
             val interactive = 
@@ -226,6 +227,7 @@ struct
                   | CompilerUtil.SMLNJ => SMLNJCompiler.interactive
                   | CompilerUtil.PolyML => PolyMLCompiler.interactive
                   | CompilerUtil.MoscowML => MoscowMLCompiler.interactive
+                  | CompilerUtil.SMLSharp => SMLSharpCompiler.interactive
                   | _ => raise Fail "Compiler not yet supported."
         in
             runPhks ();

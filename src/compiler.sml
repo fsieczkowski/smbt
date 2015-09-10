@@ -55,6 +55,7 @@ struct
       | PolyML
       | MoscowML
       | MLKit
+      | SMLSharp
 
     type compileTask = string list * string list * string list * string list * string option * (string * string) list
 
@@ -110,6 +111,7 @@ struct
           | SOME "polyml" => PolyML
           | SOME "moscowml" => MoscowML
           | SOME "mlkit" => MLKit
+          | SOME "smlsharp" => SMLSharp
           | SOME s => raise Fail ("Unknown compiler `" ^ s ^ "'.")
      
     fun statFile f =
