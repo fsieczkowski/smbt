@@ -24,15 +24,20 @@
 structure SMLSharpCompiler :> COMPILER =
 struct
     open CompilerUtil 
-
+    val modTime = OS.FileSys.modTime
     val name = "Smlsharp"
 
-    fun compileOne cmd src out cflags = let
-        val command = (String.concatWith " " [cmd, cflags, "-c", src, "-o", out])
-        val () = print (command ^ "\n")
-    in
-        exec command
-    end
+    fun compileOne smlsharp src out smlflags =
+      if Time.<(modTime out, modTime src)
+         handle SysErr => true
+      then let
+          val command = (String.concatWith " " [smlsharp, smlflags, "-c", src, "-o", out])
+          val () = print (command ^ "\n")
+          val () = exec command
+      in
+          true
+      end
+      else false
 
     fun outFileOf src = if String.isSuffix ".sml" src
                         then (String.substring(src, 0,String.size src - 4)) ^ ".o"
@@ -53,21 +58,27 @@ struct
                 SOME t => t
               | NONE => "cc"
 
-            val dir = tempdir ()
-
-            fun compileWith cmd sources = List.app (fn src => let
-                                  val outFile = outFileOf src
-                                  val () = print (" - Object file: " ^ statFile outFile ^ "\n")
-                              in
-                                  compileOne cmd src (outFileOf src) cflags
-                              end) sources
-            val _ = compileWith smlsharp srcs
-            val _ = compileWith cc ffisrcs
-            
+            val smlflags = case selectOpt opts "smlflags" of
+                               SOME t => t
+                             | NONE => ""
+                                        
+            val entry = case selectOpt opts "entry" of
+                            SOME t => t
+                          | NONE  => raise Fail "SML# requires entry point interface file"
+            fun compileWith cmd sources flags = List.map (fn src => let
+                                                              val outFile = outFileOf src
+                                                          in
+                                                              compileOne cmd src (outFileOf src) flags
+                                                          end) sources
             val _ = print (" - Compiling\n")
+            val resSml = compileWith smlsharp srcs smlflags
+            val resC   = compileWith cc ffisrcs cflags
+            
             val _ = print (" - Linking\n")
-            val objs = String.concatWith " " (List.map outFileOf (srcs @ ffisrcs))
-            val _ = exec (String.concatWith " " [smlsharp, cflags, "-o", output, objs ,cflags, lnkopts])
+            val objs = String.concatWith " " (List.map outFileOf ffisrcs)
+            val _ = if List.exists (fn x => x) (resSml @ resC)
+                then exec (String.concatWith " " [smlsharp, "-o", output, entry, objs, lnkopts])
+                else ()
 
             val _ = print (" - Output: " ^ statFile output ^ "\n")
         in
