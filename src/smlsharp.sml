@@ -1,6 +1,6 @@
 (* vim: set et ts=4: *)
 (* Smbt, an SML build tool
- *  Copyright (c) 2012 Filip Sieczkowski & Gian Perrone
+ *  Copyright (c) 2012-2015 Filip Sieczkowski, Gian Perrone & Sunrin SHIMURA
  * 
  * Permission to use, copy, modify, and distribute this software and its
  * documentation for any purpose and without fee is hereby granted,
