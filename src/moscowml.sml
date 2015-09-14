@@ -53,35 +53,29 @@ struct
             val _ = print " - Invoking MoscowML\n"
             val lnkopts = String.concatWith " " lnkopts
             val cflags  = String.concatWith " " cflags
+            val srcs    = String.concatWith " " srcs
             val mosmlc = case selectOpt opts "mosmlc" of
                 SOME t => t
               | NONE => "mosmlc"
 
-            val cc = case selectOpt opts "cc" of
-                SOME t => t
-              | NONE => "cc"
+            (* val cc = case selectOpt opts "cc" of *)
+            (*     SOME t => t *)
+            (*   | NONE => "cc" *)
 
             val smlflags = case selectOpt opts "smlflags" of
                                SOME t => t
                              | NONE => ""
-                                        
-            fun compileWith cmd sources flags = List.map (fn src => compileOne cmd src (outFileOf src) flags) sources
-            val _ = print (" - Compiling\n")
-            val resSml = compileWith mosmlc srcs smlflags
-            val resC   = compileWith cc ffisrcs cflags
-            val _ = case selectOpt opts "output" of
-                        NONE => ()
-                      | SOME output => let
-                          val _ = print (" - Linking\n")
-                          val objs = String.concatWith " " (List.map outFileOf (ffisrcs @ srcs))
-                          val _ = if List.exists (fn x => x) (resSml @ resC)
-                                  then exec (String.concatWith " " [mosmlc, "-o", output, objs, lnkopts])
-                                  else ()
 
-                          val _ = print (" - Output: " ^ statFile output ^ "\n")
-                      in
-                          ()
-                      end
+            val output = case selectOpt opts "output" of
+                             SOME output => output
+                           | NONE => raise Fail ("Compiler invoked with no output.\n")
+            (* fun compileWith cmd sources flags = List.map (fn src => compileOne cmd src (outFileOf src) flags) sources *)
+            val _ = print (" - Compiling\n")
+            (* val resSml = compileWith mosmlc srcs smlflags *)
+            (* val resC   = compileWith cc ffisrcs cflags *)
+            val _ = exec (String.concatWith " " [mosmlc, smlflags, "-o", output, srcs])
+
+            val _ = print (" - Output: " ^ statFile output ^ "\n")
         in
             ()
         end
