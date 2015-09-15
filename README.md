@@ -24,7 +24,7 @@ Continuous mode sets smbt to monitor a set of files for changes, and re-run a gi
 
 ### Interactive Mode
 
-Interactive mode is designed to be able to drop you into a REPL into which your project has already been loaded.  This will only work on targets using SML/NJ or PolyML as the compiler (MoscowML and MLKit support may follow...)
+Interactive mode is designed to be able to drop you into a REPL into which your project has already been loaded.  This will only work on targets using SML/NJ, PolyML or MoscowML as the compiler (SML# support is incomplete and MLKit support may follow...)
 
 #### Example
 
@@ -108,7 +108,7 @@ Package dependencies, sources, and FFI dependencies (explained below) are concat
 
 ### FFI usage
 
-NOTE: Currently FFI directives are only interpreted usefully when using `option compiler = mlton`.
+NOTE: Currently FFI directives are only interpreted usefully when using `option compiler = mlton` or `option compiler = smlsharp`.
 
 For the [readline library bindings](https://github.com/standardml/readline) we have a C file that needs to be included on the MLton command line for *any* client application that wishes to use it.  This is one of the things smbt is designed to avoid.
 
@@ -141,7 +141,7 @@ A client application would use this without needing to know anything about the F
 ## Worthwhile compiler options to know:
 
 Valid in any target:
-    option compiler = {mlton,smlnj,polyml,moscowml,mlkit}
+    option compiler = {mlton,smlnj,polyml,moscowml,mlkit,smlsharp}
     option output = path/to/output/binary
 
 In targets using `option compiler = mlton`:
@@ -154,12 +154,43 @@ In targets using `option compiler = smlnj`:
     option exportFn = Some.SML.function (which function should be exported as 'main')
     option heapimg = /path/to/heapimg (where to place the SML/NJ heap image, defaults to .smbt/.heapimg)
 
+, and in interactive mode,
+
+    option smlnj = /path/to/smlnj
+    option rlwrap = true (Whether use rlwrap or not, interactive mode only)
+
 In targets using `option compiler = polyml`:
 
     option polyml = /path/to/polyml
     option exportFn = Some.SML.function (which function should be exported as 'main')
     option objectFile = path/to/foo (will result in path/to/foo.o being generated)
     option cc = /path/to/cc (which C compiler to use, defaults to 'cc')
+
+, and in interactive mode,
+
+    option polyml = /path/to/polyml
+
+In targets using `option compiler = smlsharp`
+
+    option smlsharp = /path/to/smlsharp
+    option cc = /path/to/c-compiler
+    option entry = some_file.smi (The entry point interface file)
+    option smlflags = "-some -flag s" (Flags to path smlsharp compiler)
+
+, and in interactive mode,
+
+    option smlsharp = /path/to/smlsharp
+    option rlwrap = true (Whether use rlwrap or not)
+
+In targets using `option compiler = moscowml`
+
+    option mosmlc = /path/to/mosmlc
+    option smlflags = "-some -flag s" (Flags to path smlsharp compiler)
+
+, and in interactive mode,
+
+    option mosml = /path/to/mosml
+    option rlwrap = true (Whether use rlwrap or not)
 
 ## Pre-hooks and post-hooks:
 
