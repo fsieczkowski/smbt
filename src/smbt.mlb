@@ -15,6 +15,7 @@ smlnj.sml
 polyml.sml
 moscowml.sml
 smlsharp.sml
+mlkit.sml
 plan.sml
 main.sml
 go.sml
