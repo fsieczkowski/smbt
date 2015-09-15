@@ -24,18 +24,54 @@
 structure MoscowMLCompiler :> COMPILER =
 struct
     open CompilerUtil
-
     val name = "MoscowML"
 
-    fun compile' (srcs,ffisrcs,lnkopts,cflags,hdr,opts) output = ()
+    fun compile (srcs,ffisrcs,lnkopts,cflags,hdr,opts) =
+        let
+            val _ = print " - Invoking MoscowML\n"
+            val lnkopts = String.concatWith " " lnkopts
+            val cflags  = String.concatWith " " cflags
+            val srcs    = String.concatWith " " srcs
+            val mosmlc = case selectOpt opts "mosmlc" of
+                SOME t => t
+              | NONE => "mosmlc"
 
-    fun compile (c as (srcs,ffisrcs,lnkopts,cflags,hdr,opts)) =
-        case selectOpt opts "output" of
-                SOME output => compile' c output
-              | NONE => raise Fail ("Compiler invoked with no output.\n")
+            val smlflags = case selectOpt opts "smlflags" of
+                               SOME t => t
+                             | NONE => ""
+
+            val output = case selectOpt opts "output" of
+                             SOME output => output
+                           | NONE => "a.out"
+            val _ = print (" - Compiling\n")
+            val _ = exec (String.concatWith " " [mosmlc, smlflags, "-o", output, srcs])
+
+            val _ = print (" - Output: " ^ statFile output ^ "\n")
+        in
+            ()
+        end
+
 
     fun interactive (c as (srcs,ffisrcs,lnkopts,cflags,hdr,opts)) =
-            raise Fail ("MLton cannot be used in interactive mode.")
+      let
+          val _ = print " - Invoking MoscowML (interactive)\n"
+          val mosml = case selectOpt opts "mosml" of
+                          SOME t => t
+                        | NONE => "mosml"
+
+          val rlwrap = case selectOpt opts "rlwrap" of
+                           SOME "true" => "rlwrap"
+                         | _ => ""
+
+          val args = String.concatWith " " srcs
+          val cmd = String.concatWith " " [rlwrap, mosml,  args]
+
+          val _ = exec cmd
+
+          val _ = print (" - Interactive session finished.\n")
+      in
+          ()
+      end
 
 
 end
