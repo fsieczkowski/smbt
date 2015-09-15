@@ -24,29 +24,7 @@
 structure MoscowMLCompiler :> COMPILER =
 struct
     open CompilerUtil
-    val modTime = OS.FileSys.modTime
     val name = "MoscowML"
-
-    fun compileOne mosmlc src out smlflags =
-      if Time.<(modTime out, modTime src)
-         handle SysErr => true
-      then let
-          val command = (String.concatWith " " [mosmlc, smlflags, "-c", src])
-          val () = print (command ^ "\n")
-          val () = exec command
-      in
-          true
-      end
-      else false
-
-    fun outFileOf src = if String.isSuffix ".sml" src
-                        then (String.substring(src, 0,String.size src - 4)) ^ ".uo"
-                        else if String.isSuffix ".sig" src
-                        then (String.substring(src, 0,String.size src - 4)) ^ ".ui"
-                        else if String.isSuffix ".c" src
-                        then (String.substring(src, 0,String.size src - 2)) ^ ".o"
-                        else raise Fail (src ^ " isn't sml file")
-
 
     fun compile (srcs,ffisrcs,lnkopts,cflags,hdr,opts) =
         let
@@ -58,21 +36,14 @@ struct
                 SOME t => t
               | NONE => "mosmlc"
 
-            (* val cc = case selectOpt opts "cc" of *)
-            (*     SOME t => t *)
-            (*   | NONE => "cc" *)
-
             val smlflags = case selectOpt opts "smlflags" of
                                SOME t => t
                              | NONE => ""
 
             val output = case selectOpt opts "output" of
                              SOME output => output
-                           | NONE => raise Fail ("Compiler invoked with no output.\n")
-            (* fun compileWith cmd sources flags = List.map (fn src => compileOne cmd src (outFileOf src) flags) sources *)
+                           | NONE => "a.out"
             val _ = print (" - Compiling\n")
-            (* val resSml = compileWith mosmlc srcs smlflags *)
-            (* val resC   = compileWith cc ffisrcs cflags *)
             val _ = exec (String.concatWith " " [mosmlc, smlflags, "-o", output, srcs])
 
             val _ = print (" - Output: " ^ statFile output ^ "\n")
