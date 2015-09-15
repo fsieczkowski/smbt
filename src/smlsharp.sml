@@ -25,7 +25,7 @@ structure SMLSharpCompiler :> COMPILER =
 struct
     open CompilerUtil 
     val modTime = OS.FileSys.modTime
-    val name = "Smlsharp"
+    val name = "SML#"
 
     fun compileOne smlsharp src out smlflags =
       if Time.<(modTime out, modTime src)
@@ -45,9 +45,9 @@ struct
                         then (String.substring(src, 0,String.size src - 2)) ^ ".o"
                         else raise Fail (src ^ " isn't sml file")
 
-    fun compile' (srcs,ffisrcs,lnkopts,cflags,hdr,opts) output =
+    fun compile (srcs,ffisrcs,lnkopts,cflags,hdr,opts) =
         let
-            val _ = print " - Invoking Smlsharp\n"
+            val _ = print " - Invoking SML#\n"
             val lnkopts = String.concatWith " " lnkopts
             val cflags  = String.concatWith " " cflags
             val smlsharp = case selectOpt opts "smlsharp" of
@@ -62,37 +62,55 @@ struct
                                SOME t => t
                              | NONE => ""
                                         
-            val entry = case selectOpt opts "entry" of
-                            SOME t => t
-                          | NONE  => raise Fail "SML# requires entry point interface file"
             fun compileWith cmd sources flags = List.map (fn src => let
                                                               val outFile = outFileOf src
                                                           in
-                                                              compileOne cmd src (outFileOf src) flags
+                                                              compileOne cmd src outFile flags
                                                           end) sources
             val _ = print (" - Compiling\n")
             val resSml = compileWith smlsharp srcs smlflags
             val resC   = compileWith cc ffisrcs cflags
-            
-            val _ = print (" - Linking\n")
-            val objs = String.concatWith " " (List.map outFileOf ffisrcs)
-            val _ = if List.exists (fn x => x) (resSml @ resC)
-                then exec (String.concatWith " " [smlsharp, "-o", output, entry, objs, lnkopts])
-                else ()
+            val _ = case selectOpt opts "output" of
+                        NONE => ()
+                      | SOME output => let
+                          val entry = case selectOpt opts "entry" of
+                                          SOME t => t
+                                        | NONE  => raise Fail "SML# requires entry point interface file to output executable file"
+                          val _ = print (" - Linking\n")
+                          val objs = String.concatWith " " (List.map outFileOf ffisrcs)
+                          val _ = if List.exists (fn x => x) (resSml @ resC)
+                                  then exec (String.concatWith " " [smlsharp, "-o", output, entry, objs, lnkopts])
+                                  else ()
 
-            val _ = print (" - Output: " ^ statFile output ^ "\n")
+                          val _ = print (" - Output: " ^ statFile output ^ "\n")
+                      in
+                          ()
+                      end
         in
             ()
         end
 
+    fun interactive (srcs,ffisrcs,lnkopts,cflags,hdr,opts) =
+      let
+          val _ = print "interactive mode under SML# is incomplete. Project files won't be loaded.\n"
+          val _ = print " - Invoking SML# (interactive)\n"
+          val smlsharp = case selectOpt opts "smlsharp" of
+                             SOME t => t
+                           | NONE => "smlsharp"
 
-    fun compile (c as (srcs,ffisrcs,lnkopts,cflags,hdr,opts)) =
-        case selectOpt opts "output" of
-                SOME output => compile' c output
-              | NONE => raise Fail ("Compiler invoked with no output.\n")
+          val rlwrap = case selectOpt opts "rlwrap" of
+                           SOME "true" => "rlwrap"
+                         | _ => ""
 
+          val cmd = String.concatWith " " [rlwrap, smlsharp]
 
-    fun interactive (srcs,ffisrcs,lnkopts,cflags,hdr,opts) = raise Fail "interactive session isn't supported under SML#"
+          val _ = exec cmd
+
+          val _ = print (" - Interactive session finished.\n")
+      in
+          ()
+      end
+
 
 end
 
