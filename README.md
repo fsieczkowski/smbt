@@ -192,6 +192,15 @@ In targets using `option compiler = moscowml`
     option mosml = /path/to/mosml
     option rlwrap = true (Whether use rlwrap or not)
 
+In targets using `option compiler = mlkit`
+
+    option mlkit = /path/to/mlkit
+    option cc = /path/to/c-compiler
+    option smlflags = "-some -flag s" (Flags to path mlkit compiler)
+	option libs = lib1[,lib2[, .. libN]]
+	option libdirs = /path/to/libdir1[,/path/to/libdir1[, .. ]]
+
+
 ## Pre-hooks and post-hooks:
 
 Targets can execute commands in their working directory, which is defined to be whichever one contains the `.sm` file.  You can define two newline-separated lists of commands to execute before and after executing the target:
