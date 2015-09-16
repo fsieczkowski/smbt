@@ -218,7 +218,7 @@ struct
                   | CompilerUtil.PolyML => PolyMLCompiler.compile
                   | CompilerUtil.MoscowML => MoscowMLCompiler.compile
                   | CompilerUtil.SMLSharp => SMLSharpCompiler.compile
-                  | _ => raise Fail "Compiler not yet supported."
+                  | CompilerUtil.MLKit => MLKitCompiler.compile
 
             val interactive = 
                 case compiler of
@@ -228,7 +228,7 @@ struct
                   | CompilerUtil.PolyML => PolyMLCompiler.interactive
                   | CompilerUtil.MoscowML => MoscowMLCompiler.interactive
                   | CompilerUtil.SMLSharp => SMLSharpCompiler.interactive
-                  | _ => raise Fail "Compiler not yet supported."
+                  | CompilerUtil.MLKit => MLKitCompiler.interactive
         in
             runPhks ();
             if hasOutput andalso not (!Config.interactive) then 
