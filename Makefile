@@ -10,6 +10,7 @@ SOURCES=src/parser.sml \
 	src/smlnj.sml \
 	src/polyml.sml \
 	src/moscowml.sml \
+	src/mlkit.sml \
 	src/compiler.sml \
 	src/fsutil.sml \
 	src/smackage.sml \
